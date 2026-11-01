@@ -22,8 +22,9 @@ if read_kv .env | grep -E '\.\.\.$'; then
   echo "Llena en .env los valores de arriba (siguen como en la plantilla)." >&2; exit 1
 fi
 ensure_venv
-apply_config
+# Primero los plugins: sus valores por omisión (CAMPUS_WEB_URL...) los usa la configuración.
 apply_plugins
+apply_config
 # En el VPS no hay código fuente: todo viene en las imágenes.
 "$TUTOR" config save --set 'MOUNTS=[]'
 "$TUTOR" images pull "${SERVER_IMAGES[@]}"

@@ -7,9 +7,12 @@ cd "$ROOT"
 [ "$CAMPUS_ENV" = dev ] || { echo ".env es de $CAMPUS_ENV: en el servidor se usa make deploy." >&2; exit 1; }
 
 ensure_venv
-apply_config
+# Primero los plugins: sus valores por omisión (CAMPUS_WEB_URL...) los usa la configuración.
 apply_plugins
+apply_config
 apply_mounts
+# La imagen de los MFE de Tutor no trae el menú, el logo ni el header de Campus: se construye aquí.
+build_mfe_if_changed
 "$TUTOR" dev launch --non-interactive
 
 echo

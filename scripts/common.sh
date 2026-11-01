@@ -71,18 +71,29 @@ env_kv() {
 }
 
 apply_config() {
-  local args=()
+  local args=() lines=() keys=" " line name val
   # NUXT_* (variables de Campus) no son configuración de Tutor. CAMPUS_ENV sí se guarda: lo usa
   # el nombre de la imagen de los MFE (config/images.env).
   # Tutor resuelve cada {{ CLAVE }} al guardarla: una vez por clave (gana el último archivo),
   # primero los valores fijos y después los que usan otras claves.
-  while IFS= read -r line; do args+=(--set "$line"); done < <(env_kv | grep -vE '^NUXT_' | awk '
+  while IFS= read -r line; do lines+=("$line"); keys+="${line%%=*} "; done < <(env_kv | grep -vE '^NUXT_' | awk '
     { key = substr($0, 1, index($0, "=") - 1); if (!(key in value)) order[n++] = key; value[key] = $0 }
     END {
       for (i = 0; i < n; i++) if (index(value[order[i]], "{{") == 0) print value[order[i]]
       for (i = 0; i < n; i++) if (index(value[order[i]], "{{") > 0) print value[order[i]]
     }' || true)
-  "$TUTOR" config save "${args[@]}"
+  for line in ${lines[@]+"${lines[@]}"}; do
+    # Al guardar, Tutor solo conoce lo que ya está en config.yml, no los valores por omisión de los
+    # plugins (por ejemplo CAMPUS_WEB_URL de campusweb si .env no lo trae): esos se ponen aquí.
+    for name in $(grep -oE '\{\{ *[A-Z0-9_]+ *\}\}' <<<"$line" | tr -d '{} ' | sort -u); do
+      case "$keys" in *" $name "*) continue ;; esac
+      val="$("$TUTOR" config printvalue "$name")"
+      line="${line//"{{ $name }}"/"$val"}"
+      line="${line//"{{$name}}"/"$val"}"
+    done
+    args+=(--set "$line")
+  done
+  "$TUTOR" config save ${args[@]+"${args[@]}"}
   echo "$CAMPUS_ENV" > "$ENV_MARKER"
 }
 
@@ -138,6 +149,21 @@ apply_mounts() {
   local joined
   joined="$(IFS=,; echo "${items[*]:-}")"
   "$TUTOR" config save --set "MOUNTS=[$joined]"
+}
+
+# Reconstruye la imagen de los MFE (menú, logo y header de Campus) solo si cambió lo que Tutor
+# genera para construirla (tutor-plugins/campusmenu.py, el dominio de Campus, la versión de Tutor).
+# Tarda varios minutos; si no cambió nada, no hace nada.
+build_mfe_if_changed() {
+  local dir="$TUTOR_ROOT/env/plugins/mfe/build" hash_file="$TUTOR_ROOT/.mfe-build-hash" hash
+  [ -d "$dir" ] || "$TUTOR" config save >/dev/null
+  # shasum viene en macOS y en Linux; sha256sum solo en Linux.
+  hash="$(cd "$dir" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256 | shasum -a 256 | cut -d' ' -f1)"
+  if [ "$hash" != "$(cat "$hash_file" 2>/dev/null)" ]; then
+    echo "Cambió la configuración de los MFEs: reconstruyendo (tarda varios minutos)..."
+    "$TUTOR" images build mfe
+    echo "$hash" > "$hash_file"
+  fi
 }
 
 # Las imágenes propias de qa y prod: Open edX (con el plugin del LMS), los MFE (con el menú de

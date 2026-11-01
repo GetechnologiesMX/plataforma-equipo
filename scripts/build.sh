@@ -13,8 +13,9 @@ git submodule update --init --recursive
 [ -x "$TUTOR" ] || ensure_venv
 # Las llaves no entran en las imágenes: Tutor solo las escribe en la configuración que se monta
 # al encender. Por eso aquí basta la plantilla, aunque tenga las llaves en ...
-apply_config
+# Primero los plugins: sus valores por omisión (CAMPUS_WEB_URL...) los usa la configuración.
 apply_plugins
+apply_config
 # El plugin del LMS se instala dentro de la imagen de Open edX (Tutor lo toma de los montajes al construir).
 apply_mounts
 

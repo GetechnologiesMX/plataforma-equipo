@@ -568,8 +568,8 @@ Son dos comandos: `make build` en tu máquina y `make deploy` en el servidor. Lo
 
 | Imagen | Etiqueta | Cuándo cambiarla | Convención |
 | --- | --- | --- | --- |
-| `openedx` | `OPENEDX_IMAGE_TAG` | Cambió el plugin del LMS (`openedx-course-payments`), `config/tutor.env` (tema, colores) o la versión de Tutor | `21.0.9-20261031` |
-| `openedx-mfe` | `MFE_IMAGE_TAG` | Cambió el menú o el footer de Campus (`tutor-plugins/campusmenu.py`) o el dominio de Campus | `21.0.2-20261031` |
+| `openedx` | `OPENEDX_IMAGE_TAG` | Cambió el plugin del LMS (`openedx-course-payments`), `config/tutor.env` (tema, colores) o la versión de Tutor | `21.0.10-20261031` |
+| `openedx-mfe` | `MFE_IMAGE_TAG` | Cambió el menú o el footer de Campus (`tutor-plugins/campusmenu.py`) o el dominio de Campus | `21.0.3-20261031` |
 | `campus-cms` | `CAMPUS_CMS_IMAGE_TAG` | Cambió `src/campus-cms` | `20261031-<commit>` |
 | `campus-web` | `CAMPUS_WEB_IMAGE_TAG` | Cambió `src/front-campus` | `20261031-<commit>` |
 

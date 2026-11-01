@@ -8,13 +8,16 @@ git pull --rebase --autostash || echo "Aviso: no se pudo hacer git pull; sigo co
 git submodule update --init --recursive 2>/dev/null || true
 
 "$VENV/bin/pip" install -r requirements.txt
-apply_config
+# Primero los plugins: sus valores por omisión (CAMPUS_WEB_URL...) los usa la configuración.
 apply_plugins
+apply_config
 apply_mounts
 # Con 8 GB de RAM la construcción se queda sin memoria si la plataforma está encendida.
 "$TUTOR" dev stop
 "$TUTOR" images build openedx-dev
 "$TUTOR" dev dc build campus-cms
+build_mfe_if_changed
+
 "$TUTOR" dev start -d
 "$TUTOR" dev do init
 "$TUTOR" dev restart
