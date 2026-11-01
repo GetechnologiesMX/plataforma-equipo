@@ -1,5 +1,6 @@
 # Todo lo que genera Tutor (config.yml, bases de datos, env) es local de cada máquina.
 .tutor/
+.tutor-dev/
 venv/
 .env*
 backups/

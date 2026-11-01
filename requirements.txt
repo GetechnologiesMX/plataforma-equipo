@@ -1,3 +1,5 @@
 # Versiones fijas para que todo el equipo tenga exactamente lo mismo.
 # Para actualizar: cambia la versión aquí, haz commit y todos corren `make update`.
-tutor[full]==21.0.*
+tutor[full]==21.0.10
+tutor-mfe==21.0.3
+tutor-indigo==21.2.1

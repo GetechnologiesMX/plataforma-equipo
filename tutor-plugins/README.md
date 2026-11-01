@@ -6,3 +6,10 @@ dentro de la imagen, por ejemplo:
 
     from tutor import hooks
     hooks.Filters.MOUNTED_DIRECTORIES.add_item(("openedx", "plugin-stripe"))
+
+| Plugin | Qué hace |
+| --- | --- |
+| `campuscms.py` | Enlace a `src/campus-cms/tutor/campuscms.py`: el CMS en `tutor dev` y en `tutor local` (QA) |
+| `coursepayments.py` | Enlace a `src/openedx-course-payments/tutor/coursepayments.py`: ajustes del plugin del LMS |
+| `campusmenu.py` | Menú, logo y footer de Campus en los MFE (se compila en la imagen `mfe`) |
+| `campusweb.py` | Campus (Nuxt) como contenedor en `tutor local` (QA), detrás de Caddy |

@@ -1,28 +1,12 @@
 #!/usr/bin/env bash
-# Instalación desde cero en una máquina nueva.
+# Instalación desde cero en una máquina nueva (ambiente dev). En qa y prod: make deploy en el servidor.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+[ -f "$ROOT/.env" ] || { cp "$ROOT/.env.dev" "$ROOT/.env"; echo "Creé .env desde .env.dev: pon tu llave de Stripe en él."; }
 source "$(dirname "$0")/common.sh"
 cd "$ROOT"
+[ "$CAMPUS_ENV" = dev ] || { echo ".env es de $CAMPUS_ENV: en el servidor se usa make deploy." >&2; exit 1; }
 
-[ -f .env ] || { cp .env.example .env; echo "Creé .env desde .env.example: llénalo si tu plugin necesita llaves."; }
-
-# En macOS `python3` suele ser el 3.9 de Apple: se prefiere un Python más nuevo si existe.
-PYTHON="${PYTHON:-}"
-if [ -z "$PYTHON" ]; then
-  for p in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$p" >/dev/null; then PYTHON="$p"; break; fi
-  done
-fi
-# Si el venv se creó con otro Python (o quedó a medias sin bin/tutor), se crea de nuevo.
-if [ -x "$VENV/bin/python" ] && [ -x "$VENV/bin/tutor" ] \
-  && [ "$("$VENV/bin/python" -c 'import sys; print(sys.version_info[:2])')" = "$("$PYTHON" -c 'import sys; print(sys.version_info[:2])')" ]; then
-  :
-else
-  rm -rf "$VENV"
-  "$PYTHON" -m venv "$VENV"
-fi
-"$VENV/bin/pip" install --upgrade pip
-"$VENV/bin/pip" install -r requirements.txt
-
+ensure_venv
 apply_config
 apply_plugins
 apply_mounts
