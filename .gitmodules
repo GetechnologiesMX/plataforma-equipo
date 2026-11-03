@@ -1,12 +1,12 @@
 [submodule "src/openedx-course-payments"]
 	path = src/openedx-course-payments
-	url = git@github.com:erickdoevp/openedx-course-payments.git
+	url = git@github.com:GetechnologiesMX/openedx-course-payments.git
 	branch = dev
 [submodule "src/front-campus"]
 	path = src/front-campus
-	url = git@github.com:erickdoevp/campus-web.git
+	url = git@github.com:GetechnologiesMX/campus-web.git
 	branch = dev
 [submodule "src/campus-cms"]
 	path = src/campus-cms
-	url = git@github.com:erickdoevp/campus-cms.git
+	url = git@github.com:GetechnologiesMX/campus-cms.git
 	branch = dev
