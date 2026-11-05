@@ -1,5 +1,5 @@
 # Comandos del equipo. Escribe `make` para ver la lista.
-# El ambiente lo dice .env (copia de .env.dev, .env.qa o .env.prod).
+# El ambiente lo dice .env (copia de .env.local, .env.dev, .env.qa o .env.prod).
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
@@ -27,7 +27,7 @@ logs: ## Muestra los logs del LMS
 cms-logs: ## Muestra los logs del CMS (campus-cms)
 	@source scripts/common.sh && "$$TUTOR" $$MODE logs -f --tail=100 campus-cms
 
-web-logs: ## Muestra los logs de Campus en qa/prod (en dev salen en la terminal de make front)
+web-logs: ## Muestra los logs de Campus en dev/qa/prod (en local salen en la terminal de make front)
 	@source scripts/common.sh && "$$TUTOR" $$MODE logs -f --tail=100 campus-web
 
 contador: ## Da el rol Contador (acceso a /admin): make contador USER_NAME=usuario [REMOVE=1]
@@ -63,7 +63,7 @@ front: ## Levanta el sitio público (Nuxt) en http://www.local.openedx.io:3000
 stripe: ## Reenvía los webhooks de prueba de Stripe al CMS local
 	@scripts/stripe.sh
 
-build: ## [tu máquina, con .env de qa o prod] Construye las imágenes y las sube al registro
+build: ## [tu máquina, con .env de dev, qa o prod] Construye las imágenes y las sube al registro
 	@scripts/build.sh
 
 deploy: ## [servidor] Baja el código y las imágenes, y enciende/actualiza todo con tutor local

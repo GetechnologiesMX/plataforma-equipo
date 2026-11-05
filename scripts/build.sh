@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Construye y sube al registro las imágenes del ambiente de .env (CAMPUS_ENV=qa o prod) cuya
-# versión de config/images.env todavía no está publicada. Antes: docker login <registro>.
-# En tu máquina: cp .env.qa .env (o .env.prod), make build, y regresa tu .env de dev.
+# Construye y sube al registro las imágenes del ambiente de .env (CAMPUS_ENV=dev, qa o prod) cuya
+# versión de config/images.<ambiente>.env todavía no está publicada. Antes: docker login <registro>.
+# En tu máquina: cp .env.dev .env (o .env.qa, .env.prod), make build, y regresa tu .env de local.
 # Usa un Tutor temporal, así que no toca .tutor-dev/ ni .tutor/.
 TUTOR_ROOT_OVERRIDE="$(mktemp -d)"
 trap 'rm -rf "$TUTOR_ROOT_OVERRIDE"' EXIT
 source "$(dirname "$0")/common.sh"
 cd "$ROOT"
-[ "$MODE" = local ] || { echo "make build es para qa o prod: copia a .env su plantilla (cp .env.qa .env)" >&2; exit 1; }
+[ "$MODE" = local ] || { echo "make build es para dev, qa o prod: copia a .env su plantilla (cp .env.dev .env)" >&2; exit 1; }
 
 git submodule update --init --recursive
 [ -x "$TUTOR" ] || ensure_venv
@@ -30,7 +30,7 @@ for image in "${SERVER_IMAGES[@]}"; do
   fi
 done
 if [ ${#todo[@]} -eq 0 ]; then
-  echo "Nada que construir: todas las versiones de config/images.env ya están en el registro."
+  echo "Nada que construir: todas las versiones de config/images.$CAMPUS_ENV.env ya están en el registro."
   exit 0
 fi
 
@@ -48,4 +48,4 @@ echo "Publicadas para $CAMPUS_ENV:"
 for image in "${todo[@]}"; do
   echo "  $("$TUTOR" config printvalue "$(image_key "$image")")"
 done
-echo "Haz commit de config/images.env y, en el servidor: make deploy"
+echo "Haz commit de config/images.$CAMPUS_ENV.env y, en el servidor: make deploy"

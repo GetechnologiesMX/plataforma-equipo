@@ -2,11 +2,14 @@
 # Variables comunes: cada repo tiene su propio Tutor, así dos proyectos nunca se mezclan.
 #
 # Todo se lee de .env, copia de la plantilla del ambiente con las llaves llenas:
-#   cp .env.dev .env    tutor dev en tu máquina
+#   cp .env.local .env  tutor dev en tu máquina
+#   cp .env.dev .env    tutor local en el servidor de desarrollo
 #   cp .env.qa .env     tutor local en el VPS de pruebas
 #   cp .env.prod .env   tutor local en el servidor de producción
 # CAMPUS_ENV (dentro de .env) dice cuál es. Lo compartido por todos está en config/tutor.env.
-# dev guarda su Tutor en .tutor-dev/ y qa o prod en .tutor/ (make build usa una carpeta temporal).
+# local guarda su Tutor en .tutor-dev/ y dev, qa o prod en .tutor/ (make build usa una carpeta temporal).
+# Ojo: MODE es el comando de Tutor, no el ambiente: CAMPUS_ENV=local usa `tutor dev` (MODE=dev) y
+# CAMPUS_ENV=dev, qa o prod usan `tutor local` (MODE=local).
 set -eo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -18,38 +21,53 @@ read_kv() {
 }
 
 ENV_FILE="$ROOT/.env"
-# Un .env anterior a los ambientes no trae CAMPUS_ENV: es de dev.
+# Un .env anterior a los ambientes no trae CAMPUS_ENV: es de tu máquina.
 CAMPUS_ENV="$(read_kv "$ENV_FILE" | sed -n 's/^CAMPUS_ENV=//p' | tail -1)"
-CAMPUS_ENV="${CAMPUS_ENV:-dev}"
+CAMPUS_ENV="${CAMPUS_ENV:-local}"
 case "$CAMPUS_ENV" in
-  dev)     MODE=dev ;;
-  qa|prod) MODE=local ;;
-  *) echo "CAMPUS_ENV=$CAMPUS_ENV en $ENV_FILE no existe (usa dev, qa o prod)" >&2; exit 1 ;;
+  local)       MODE=dev ;;
+  dev|qa|prod) MODE=local ;;
+  *) echo "CAMPUS_ENV=$CAMPUS_ENV en $ENV_FILE no existe (usa local, dev, qa o prod)" >&2; exit 1 ;;
 esac
 if [ "$MODE" = dev ]; then TUTOR_DIR=.tutor-dev; else TUTOR_DIR=.tutor; fi
+# Antes el ambiente de tu máquina se llamaba dev; ahora dev es un servidor. Un .env viejo en una
+# laptop se detiene aquí en lugar de buscar un .tutor/ que no existe. (make build sí puede usar
+# .env.dev en tu máquina: trae TUTOR_ROOT_OVERRIDE.)
+if [ "$CAMPUS_ENV" = dev ] && [ -z "${TUTOR_ROOT_OVERRIDE:-}" ] \
+  && [ -f "$ROOT/.tutor-dev/config.yml" ] && [ ! -f "$ROOT/.tutor/config.yml" ]; then
+  echo "Esta máquina es local, pero .env dice CAMPUS_ENV=dev (ahora dev es el servidor)." >&2
+  echo "Cambia en .env a CAMPUS_ENV=local, o cp .env.local .env y pon tus llaves." >&2
+  exit 1
+fi
 # TUTOR_ROOT_OVERRIDE permite apuntar a otra instalación (por ejemplo, para respaldar la anterior).
 export TUTOR_ROOT="${TUTOR_ROOT_OVERRIDE:-$ROOT/$TUTOR_DIR}"
 export TUTOR_PLUGINS_ROOT="$ROOT/tutor-plugins"
 VENV="$ROOT/venv"
 TUTOR="$VENV/bin/tutor"
 # Qué ambiente tiene esta carpeta de Tutor (lo escribe apply_config). Un .tutor/ sin archivo es
-# una instalación de dev anterior a .tutor-dev/.
+# una instalación de tu máquina anterior a .tutor-dev/.
 ENV_MARKER="$TUTOR_ROOT/campus-env"
 
-# Antes dev también usaba .tutor/: la primera vez que corre cualquier comando de dev, se mueve
-# a .tutor-dev/ (con usuarios, cursos y todo). Los contenedores se recrean con la ruta nueva.
+# Antes tu máquina también usaba .tutor/: la primera vez que corre cualquier comando de local, se
+# mueve a .tutor-dev/ (con usuarios, cursos y todo). Los contenedores se recrean con la ruta nueva.
+# Solo sin archivo de ambiente: un .tutor/ que dice dev puede ser el de un servidor.
 if [ "$MODE" = dev ] && [ -z "${TUTOR_ROOT_OVERRIDE:-}" ] && [ ! -e "$ROOT/.tutor-dev" ] \
-  && [ -f "$ROOT/.tutor/config.yml" ] && [ "$(cat "$ROOT/.tutor/campus-env" 2>/dev/null || echo dev)" = dev ]; then
-  echo "Moviendo tu instalación de dev de .tutor/ a .tutor-dev/ (solo esta vez)..." >&2
+  && [ -f "$ROOT/.tutor/config.yml" ] && [ ! -f "$ROOT/.tutor/campus-env" ]; then
+  echo "Moviendo tu instalación local de .tutor/ a .tutor-dev/ (solo esta vez)..." >&2
   if [ -x "$TUTOR" ]; then TUTOR_ROOT="$ROOT/.tutor" "$TUTOR" dev dc down --remove-orphans >&2 || true; fi
   mv "$ROOT/.tutor" "$ROOT/.tutor-dev"
-  echo dev > "$ENV_MARKER"
+  echo local > "$ENV_MARKER"
   if [ -x "$TUTOR" ]; then "$TUTOR" config save >/dev/null; fi
   echo "Listo. Enciende con make start si estaba encendida." >&2
 fi
 
 if [ -f "$TUTOR_ROOT/config.yml" ]; then
-  installed="$(cat "$ENV_MARKER" 2>/dev/null || echo dev)"
+  installed="$(cat "$ENV_MARKER" 2>/dev/null || echo local)"
+  # Un .tutor-dev/ de antes del cambio de nombre dice dev: es el mismo ambiente, ahora local.
+  if [ "$MODE" = dev ] && [ "$installed" = dev ]; then
+    installed=local
+    echo local > "$ENV_MARKER"
+  fi
   if [ "$installed" != "$CAMPUS_ENV" ]; then
     echo "$TUTOR_DIR/ es del ambiente $installed, pero .env dice $CAMPUS_ENV." >&2
     echo "Copia la plantilla de esta máquina (cp .env.$installed .env) y pon sus llaves." >&2
@@ -62,18 +80,17 @@ read_list() {
   grep -vE '^[[:space:]]*(#|$)' "$1" | sed 's/[[:space:]]*$//' || true
 }
 
-# Toda la configuración del ambiente: lo compartido, las imágenes de los servidores (solo qa y prod)
-# y después .env (que gana).
+# Toda la configuración del ambiente: lo compartido, las imágenes del servidor (dev, qa y prod:
+# config/images.<ambiente>.env) y después .env (que gana).
 env_kv() {
   read_kv "$ROOT/config/tutor.env"
-  if [ "$MODE" = local ]; then read_kv "$ROOT/config/images.env"; fi
+  if [ "$MODE" = local ]; then read_kv "$ROOT/config/images.$CAMPUS_ENV.env"; fi
   read_kv "$ENV_FILE"
 }
 
 apply_config() {
   local args=() lines=() keys=" " line name val
-  # NUXT_* (variables de Campus) no son configuración de Tutor. CAMPUS_ENV sí se guarda: lo usa
-  # el nombre de la imagen de los MFE (config/images.env).
+  # NUXT_* (variables de Campus) no son configuración de Tutor.
   # Tutor resuelve cada {{ CLAVE }} al guardarla: una vez por clave (gana el último archivo),
   # primero los valores fijos y después los que usan otras claves.
   while IFS= read -r line; do lines+=("$line"); keys+="${line%%=*} "; done < <(env_kv | grep -vE '^NUXT_' | awk '
@@ -166,10 +183,10 @@ build_mfe_if_changed() {
   fi
 }
 
-# Las imágenes propias de qa y prod: Open edX (con el plugin del LMS), los MFE (con el menú de
+# Las imágenes propias de dev, qa y prod: Open edX (con el plugin del LMS), los MFE (con el menú de
 # Campus), el CMS y Campus. Se construyen en tu máquina y el servidor las baja del registro.
 SERVER_IMAGES=(openedx mfe campus-cms campus-web)
-# La clave de Tutor con el nombre completo (registro y etiqueta) de cada una (config/images.env).
+# La clave de Tutor con el nombre completo (registro y etiqueta) de cada una (config/images.<ambiente>.env).
 image_key() {
   case "$1" in
     openedx) echo DOCKER_IMAGE_OPENEDX ;;

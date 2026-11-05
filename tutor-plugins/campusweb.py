@@ -1,5 +1,5 @@
 """
-Tutor plugin: Campus, the public site (Nuxt), in `tutor local` (qa, prod).
+Tutor plugin: Campus, the public site (Nuxt), in `tutor local` (dev, qa, prod).
 
 - Adds the `campus-web` container, from the registry image
   (`CAMPUS_WEB_DOCKER_IMAGE`), published by Caddy at `CAMPUS_WEB_URL`.

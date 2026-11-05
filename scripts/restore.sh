@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restaura un respaldo: make restore BACKUP=backups/dev-2026-10-13_1500 (backups/qa-... en el servidor)
+# Restaura un respaldo: make restore BACKUP=backups/local-2026-10-13_1500 (backups/qa-... en el servidor)
 source "$(dirname "$0")/common.sh"
 cd "$ROOT"
 DIR="${1:?Indica la carpeta: make restore BACKUP=backups/...}"

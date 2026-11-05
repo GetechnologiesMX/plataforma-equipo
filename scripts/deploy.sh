@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# En el servidor (qa o prod), lo único que se corre: make deploy
+# En el servidor (dev, qa o prod), lo único que se corre: make deploy
 #   1. Baja el código (git pull y submódulos).
 #   2. Instala Tutor si falta y aplica .env.
 #   3. Baja las imágenes del registro, genera el docker compose y enciende todo con `tutor local`.
@@ -15,8 +15,8 @@ source scripts/common.sh
 cd "$ROOT"
 
 command -v docker >/dev/null || { echo "Instala Docker Engine: https://docs.docker.com/engine/install/" >&2; exit 1; }
-[ -f .env ] || { echo "Falta .env: cp .env.qa .env (o .env.prod) y llena sus llaves" >&2; exit 1; }
-[ "$MODE" = local ] || { echo ".env es de dev: en el servidor copia .env.qa o .env.prod (en tu máquina usa make setup)" >&2; exit 1; }
+[ -f .env ] || { echo "Falta .env: cp .env.dev .env (o .env.qa, .env.prod) y llena sus llaves" >&2; exit 1; }
+[ "$MODE" = local ] || { echo ".env es de local: en el servidor copia .env.dev, .env.qa o .env.prod (en tu máquina usa make setup)" >&2; exit 1; }
 # Las llaves de la plantilla terminan en ...: si queda alguna, falta llenarla.
 if read_kv .env | grep -E '\.\.\.$'; then
   echo "Llena en .env los valores de arriba (siguen como en la plantilla)." >&2; exit 1

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Instalación desde cero en una máquina nueva (ambiente dev). En qa y prod: make deploy en el servidor.
+# Instalación desde cero en una máquina nueva (ambiente local). En dev, qa y prod: make deploy en el servidor.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-[ -f "$ROOT/.env" ] || { cp "$ROOT/.env.dev" "$ROOT/.env"; echo "Creé .env desde .env.dev: pon tu llave de Stripe en él."; }
+[ -f "$ROOT/.env" ] || { cp "$ROOT/.env.local" "$ROOT/.env"; echo "Creé .env desde .env.local: pon tu llave de Stripe en él."; }
 source "$(dirname "$0")/common.sh"
 cd "$ROOT"
-[ "$CAMPUS_ENV" = dev ] || { echo ".env es de $CAMPUS_ENV: en el servidor se usa make deploy." >&2; exit 1; }
+[ "$CAMPUS_ENV" = local ] || { echo ".env es de $CAMPUS_ENV: en el servidor se usa make deploy." >&2; exit 1; }
 
 ensure_venv
 # Primero los plugins: sus valores por omisión (CAMPUS_WEB_URL...) los usa la configuración.

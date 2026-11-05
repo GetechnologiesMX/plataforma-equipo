@@ -9,13 +9,13 @@ Este repo define toda la plataforma: la versión de Tutor, los plugins, la confi
 | `src/campus-cms` | CMS del contador: cursos, precios y ventas; cobra con Stripe (Django + DRF) | `campus-cms` (submódulo) |
 | `tutor-plugins/` | Plugins de Tutor del equipo (el CMS, el plugin del LMS y el menú de Campus en Open edX) | este repo |
 | `config/` | Plugins activos, montajes y `tutor.env` (lo que comparten todos los ambientes: nombre, idioma, colores) | este repo |
-| `.env.dev` / `.env.qa` / `.env.prod` | Plantilla de cada ambiente: direcciones, imágenes, correo y las llaves vacías | este repo |
+| `.env.local` / `.env.dev` / `.env.qa` / `.env.prod` | Plantilla de cada ambiente: direcciones, correo y las llaves vacías | este repo |
 | `.env` | La configuración que usan todos los comandos: copia de una plantilla con las llaves llenas. **Nunca se sube a Git** | solo en cada máquina |
 | `src/frontend-app-*` | Copias locales de MFEs de Open edX para probar cambios (ignoradas por Git) | solo en tu máquina |
 
-Hay tres ambientes: **dev** (`tutor dev` en la máquina de cada quien, lo de las secciones 1 a 10), **qa** y **prod** (`tutor local` en un servidor, con HTTPS y las imágenes del registro del equipo, sección 11). El ambiente de cada máquina lo decide qué plantilla copiaste a `.env` (`CAMPUS_ENV`). Los mismos comandos (`make logs`, `make backup`...) sirven en los tres.
+Hay cuatro ambientes: **local** (`tutor dev` en la máquina de cada quien, lo de las secciones 1 a 10), **dev**, **qa** y **prod** (`tutor local` en un servidor, con HTTPS y las imágenes del registro del equipo, sección 11). El ambiente de cada máquina lo decide qué plantilla copiaste a `.env` (`CAMPUS_ENV`). Los mismos comandos (`make logs`, `make backup`...) sirven en los cuatro.
 
-Direcciones en dev:
+Direcciones en local:
 
 - LMS: http://local.openedx.io:8000
 - Studio: http://studio.local.openedx.io:8001
@@ -99,14 +99,14 @@ Revisa que las tres carpetas tengan archivos: `ls src/openedx-course-payments sr
 
 ### 1.3 Pon tus llaves
 
-Crea tu `.env` desde la plantilla de dev y pon tu llave de Stripe en `CAMPUS_CMS_STRIPE_SECRET_KEY` (solo llaves de prueba, `sk_test_`, nunca `sk_live_`). El `whsec_` lo obtienes en el paso 1.6.
+Crea tu `.env` desde la plantilla de local y pon tu llave de Stripe en `CAMPUS_CMS_STRIPE_SECRET_KEY` (solo llaves de prueba, `sk_test_`, nunca `sk_live_`). El `whsec_` lo obtienes en el paso 1.6.
 
 ```bash
-cp .env.dev .env
+cp .env.local .env
 nano .env
 ```
 
-Si ya tenías un `.env` con solo las llaves, cópialas a una copia nueva de `.env.dev` y usa esa como `.env`.
+Si ya tenías un `.env` con solo las llaves, cópialas a una copia nueva de `.env.local` y usa esa como `.env`.
 
 ### 1.4 Instala la plataforma
 
@@ -346,7 +346,7 @@ Así se agregó `campus-cms`. A diferencia del plugin del LMS, no se monta dentr
    - `scripts/backup.sh` y `scripts/restore.sh`: su base de MySQL;
    - `Makefile`: `restart` y, si sirve, atajos como `make cms-logs`.
 
-   Lo que cambia por ambiente (direcciones, llaves) va en `.env.dev`, `.env.qa` y `.env.prod` (sin llaves de verdad) con el nombre de su configuración (`CAMPUS_CMS_STRIPE_SECRET_KEY`), y lo que es igual en todos en `config/tutor.env`.
+   Lo que cambia por ambiente (direcciones, llaves) va en `.env.local`, `.env.dev`, `.env.qa` y `.env.prod` (sin llaves de verdad) con el nombre de su configuración (`CAMPUS_CMS_STRIPE_SECRET_KEY`), y lo que es igual en todos en `config/tutor.env`.
 
 4. **Aplica y comparte.** `make update` y sube todo:
 
@@ -415,13 +415,15 @@ Los videos subidos solo se ven mientras `make front` está corriendo (los sirve 
 | `make doctor` | Ver versiones y estado para comparar con otra máquina |
 | `make tutor ARGS="..."` | Cualquier comando de Tutor de este proyecto |
 | `make reconcile` | Reintentar accesos que fallaron y cerrar pagos sin webhook |
-| `make web-logs` | Ver los logs de Campus en qa/prod |
-| `make build` | [tu máquina, con `.env` de qa o prod] Construir las imágenes y subirlas al registro |
+| `make web-logs` | Ver los logs de Campus en dev/qa/prod |
+| `make build` | [tu máquina, con `.env` de dev, qa o prod] Construir las imágenes y subirlas al registro |
 | `make deploy` | [servidor] Bajar código e imágenes y encender o actualizar todo |
 
-En el servidor (qa o prod) funcionan igual `start`, `stop`, `restart`, `logs`, `cms-logs`, `web-logs`, `contador`, `reconcile`, `shell`, `admin`, `tutor`, `backup`, `restore`, `doctor` y `config`: el ambiente lo toman de `.env`, sin `ENV=`. Dev guarda su Tutor (configuración y datos) en `.tutor-dev/`; qa y prod, en `.tutor/`. Si en el servidor copias a `.env` la plantilla de otro ambiente (qa en un servidor de prod), el comando se detiene y te dice cuál usar.
+En el servidor (dev, qa o prod) funcionan igual `start`, `stop`, `restart`, `logs`, `cms-logs`, `web-logs`, `contador`, `reconcile`, `shell`, `admin`, `tutor`, `backup`, `restore`, `doctor` y `config`: el ambiente lo toman de `.env`, sin `ENV=`. Local guarda su Tutor (configuración y datos) en `.tutor-dev/`; dev, qa y prod, en `.tutor/`. Si en el servidor copias a `.env` la plantilla de otro ambiente (qa en un servidor de prod), el comando se detiene y te dice cuál usar.
 
-Si instalaste dev antes de `.tutor-dev/`, tu instalación vive en `.tutor/`: el primer comando de dev que corras (`make update`, `make start`...) la mueve sola a `.tutor-dev/`, con tus usuarios y cursos, y apaga los contenedores para que se recreen con la ruta nueva. Después, `make start`.
+**Si tu `.env` todavía dice `CAMPUS_ENV=dev` en tu máquina:** ese ambiente ahora se llama local y dev es el servidor. Los comandos se detienen y te lo avisan: cambia esa línea a `CAMPUS_ENV=local`. `.tutor-dev/` no cambia, conservas usuarios y cursos.
+
+Si instalaste antes de `.tutor-dev/`, tu instalación vive en `.tutor/`: el primer comando de local que corras (`make update`, `make start`...) la mueve sola a `.tutor-dev/`, con tus usuarios y cursos, y apaga los contenedores para que se recreen con la ruta nueva. Después, `make start`.
 
 No hace falta activar ningún venv: `make` ya usa el Tutor de este repo.
 
@@ -447,7 +449,7 @@ Para ver los logs del CMS: `make tutor ARGS="dev logs -f --tail=100 campus-cms"`
 | `docker: not found` o falta `docker.sock` | Docker Desktop no está abierto. Ábrelo; si sigue igual, `wsl --shutdown` en PowerShell y ábrelo de nuevo |
 | La construcción se corta con `EOF` | Falta memoria: revisa `.wslconfig`, cierra programas y repite el comando |
 | Error de montaje con `redis.conf` | Quedaron contenedores viejos: `docker rm -f $(docker ps -aq --filter name=tutor_)` y repite |
-| No llega el correo de activación | En dev no se envían correos. Activa al usuario en http://local.openedx.io:8000/admin/auth/user/ (casilla *Active*) o créalo con `make tutor ARGS="dev do createuser alumno1 alumno1@ejemplo.com"` |
+| No llega el correo de activación | En local no se envían correos. Activa al usuario en http://local.openedx.io:8000/admin/auth/user/ (casilla *Active*) o créalo con `make tutor ARGS="dev do createuser alumno1 alumno1@ejemplo.com"` |
 | No abre http://www.local.openedx.io:3000 | Revisa que `make front` siga corriendo; `ss -ltnp \| grep 3000` debe mostrar `0.0.0.0:3000` |
 | `make stripe` muestra `[400]` | El `whsec_` de `.env` no coincide: cópialo de nuevo y corre `make config` |
 | `/admin` dice "La administración no está disponible" | El CMS no responde. Revisa http://campus-cms.local.openedx.io:8010/api/health/ y los logs del CMS; normalmente basta `make tutor ARGS="dev restart campus-cms"` |
@@ -479,9 +481,9 @@ make restore BACKUP=backups/<la carpeta que se creó>
 
 ---
 
-## 11. QA y producción en un servidor (`tutor local`)
+## 11. Dev, QA y producción en un servidor (`tutor local`)
 
-QA y producción son la plataforma completa en un servidor, como la verá la gente: HTTPS y correos de verdad. Se preparan igual; cambian el dominio y Stripe: **qa** cobra en modo de prueba (para probar el ciclo entero: registro → compra → curso) y **prod** cobra de verdad. Cada uno va en su propio servidor.
+Dev, QA y producción son la plataforma completa en un servidor, como la verá la gente: HTTPS y correos de verdad. Se preparan igual; cambian el dominio y Stripe: **dev** y **qa** cobran en modo de prueba (para probar el ciclo entero: registro → compra → curso) y **prod** cobra de verdad. Cada uno va en su propio servidor.
 
 Corren con `tutor local` y **no se construyen en el servidor**: tú construyes las imágenes en tu máquina, las subes al registro de Docker del equipo y el servidor solo las baja.
 
@@ -493,7 +495,7 @@ Corren con `tutor local` y **no se construyen en el servidor**: tú construyes l
 | Campus (`front-campus`)                 | Imagen `campus-web` del registro (`node .output/server/index.mjs`)                                                                        |
 | HTTPS                                   | Caddy de Tutor, con certificados de Let's Encrypt automáticos para todos los dominios                                                     |
 | Docker compose                          | Lo genera Tutor en `.tutor/env/local/` del servidor a partir de los plugins (`tutor-plugins/campusweb.py` y `campuscms.py` agregan Campus y el CMS) |
-| Configuración                           | `.env.qa` / `.env.prod` (plantillas en Git, sin llaves), `config/tutor.env` y `.env` (la copia con las llaves, solo en el servidor)       |
+| Configuración                           | `.env.dev` / `.env.qa` / `.env.prod` (plantillas en Git, sin llaves), `config/tutor.env` y `.env` (la copia con las llaves, solo en el servidor)       |
 | Datos                                   | `.tutor/data/` en el servidor: MySQL, MongoDB, videos de Campus (`campus-web/videos`) e imágenes del CMS (`campus-cms/media`)             |
 
 Direcciones (con los dominios de ejemplo de las plantillas; en prod quita el `qa.`):
@@ -512,13 +514,13 @@ Campus debe ser un subdominio del LMS (`www.` + `LMS_HOST`): lee las cookies de 
 
 | Archivo | Qué es | En Git |
 | --- | --- | --- |
-| `.env.dev`, `.env.qa`, `.env.prod` | Plantilla de cada ambiente: dominio, correo y las llaves vacías (`...`) | sí |
-| `config/images.env` | El registro y la versión (etiqueta) de cada imagen de qa y prod | sí |
+| `.env.local`, `.env.dev`, `.env.qa`, `.env.prod` | Plantilla de cada ambiente: dominio, registro, correo y las llaves vacías (`...`) | sí |
+| `config/images.dev.env`, `images.qa.env`, `images.prod.env` | La versión (etiqueta) de cada imagen en ese ambiente | sí |
 | `.env` | La copia de una plantilla con las llaves llenas | **nunca** |
 
 - Lo que no es secreto (dominio, correo) se cambia **en la plantilla** y se hace commit: `make build` construye las imágenes con una copia de la plantilla, así que la plantilla y el `.env` del servidor deben coincidir.
-- Las versiones de las imágenes se cambian en `config/images.env` (ver 11.3).
-- Las llaves (Stripe, contraseña del correo) solo van en el `.env` del servidor. Nunca las escribas en `.env.qa` ni en `.env.prod`.
+- Las versiones de las imágenes se cambian en `config/images.<ambiente>.env` (ver 11.3).
+- Las llaves (Stripe, contraseña del correo) solo van en el `.env` del servidor. Nunca las escribas en `.env.dev`, `.env.qa` ni `.env.prod`.
 
 ### 11.2 Preparar un servidor (una sola vez)
 
@@ -543,20 +545,20 @@ Campus debe ser un subdominio del LMS (`www.` + `LMS_HOST`): lee las cookies de 
    docker login registry.example.com
    ```
 
-   La dirección a la que se suben las imágenes es `CAMPUS_DOCKER_REGISTRY` en `config/images.env`, sin `/` al final: forma parte del nombre de cada imagen (`nexus.getechnologiesmx.com/docker-releases/auditia/educacion/campus-web:20261031-81b53f5`), y `docker push` la sube al servidor que va antes de la primera `/`. Para Nexus usa el puerto de su repositorio Docker (`nexus.tuempresa.com:8083/campus`); para Docker Hub, `docker.io/<tu-usuario>`; para GitHub, `ghcr.io/<org>`.
+   La dirección a la que se suben las imágenes es `CAMPUS_DOCKER_REGISTRY` en la plantilla de cada ambiente, sin `/` al final: forma parte del nombre de cada imagen (`nexus.getechnologiesmx.com/docker-releases/auditia/educacion/campus-web:20261031-81b53f5`), y `docker push` la sube al servidor que va antes de la primera `/`. Para Nexus usa el puerto de su repositorio Docker (`nexus.tuempresa.com:8083/campus`); para Docker Hub, `docker.io/<tu-usuario>`; para GitHub, `ghcr.io/<org>`.
 
-4. **La plantilla.** En tu máquina, en `.env.qa` (o `.env.prod`), cambia el dominio y el correo (sin `http://`: `LMS_HOST=qa.tudominio.com`); en `config/images.env`, el registro. Haz commit y push.
+4. **La plantilla.** En tu máquina, en `.env.dev` (o `.env.qa`, `.env.prod`), cambia el dominio, el correo y el registro (sin `http://`: `LMS_HOST=qa.tudominio.com`). Haz commit y push.
 
 5. **El `.env` del servidor.** Ya en el servidor (`cd plataforma-equipo`):
 
    ```bash
-   cp .env.qa .env     # en producción: cp .env.prod .env
+   cp .env.qa .env     # o .env.dev, .env.prod según el servidor
    nano .env           # llena las llaves que terminan en ...
    ```
 
    `make deploy` no arranca mientras quede alguna llave en `...`.
 
-6. **Stripe.** En el dashboard de Stripe (modo de prueba en QA, https://dashboard.stripe.com/test/webhooks; modo real en producción) → *Add endpoint*: URL `https://cms.<dominio>/api/v1/webhooks/stripe/` y los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` y `charge.refunded`. Copia su *Signing secret* (`whsec_...`) a `CAMPUS_CMS_STRIPE_WEBHOOK_SECRET` en el `.env` del servidor. En el servidor no se usa `make stripe`.
+6. **Stripe.** En el dashboard de Stripe (modo de prueba en dev y QA, https://dashboard.stripe.com/test/webhooks; modo real en producción) → *Add endpoint*: URL `https://cms.<dominio>/api/v1/webhooks/stripe/` y los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` y `charge.refunded`. Copia su *Signing secret* (`whsec_...`) a `CAMPUS_CMS_STRIPE_WEBHOOK_SECRET` en el `.env` del servidor. En el servidor no se usa `make stripe`.
 
 7. **El correo.** El relevo de correo de Tutor manda por el puerto 25, que casi todos los servidores bloquean, así que se usa un proveedor (`SMTP_*` en la plantilla; usuario y contraseña en `.env`). Sin correo, nadie puede activar su cuenta ni recuperar su contraseña. Verifica en el proveedor el remitente `CONTACT_EMAIL`.
 
@@ -564,30 +566,30 @@ Campus debe ser un subdominio del LMS (`www.` + `LMS_HOST`): lee las cookies de 
 
 Son dos comandos: `make build` en tu máquina y `make deploy` en el servidor. Los dos toman el ambiente de `CAMPUS_ENV` en `.env`.
 
-**Las versiones.** `config/images.env` tiene una etiqueta por imagen. Para publicar un cambio, sube **solo** la etiqueta de la imagen que cambió:
+**Las versiones.** Cada ambiente tiene su archivo con una etiqueta por imagen: `config/images.dev.env`, `images.qa.env` e `images.prod.env`. Para publicar un cambio, sube **solo** la etiqueta de la imagen que cambió:
 
-| Imagen | Etiqueta | Cuándo cambiarla | Convención |
+| Imagen | Etiqueta | Cuándo cambiarla | Ejemplo |
 | --- | --- | --- | --- |
 | `openedx` | `OPENEDX_IMAGE_TAG` | Cambió el plugin del LMS (`openedx-course-payments`), `config/tutor.env` (tema, colores) o la versión de Tutor | `21.0.10-20261031` |
-| `openedx-mfe` | `MFE_IMAGE_TAG` | Cambió el menú o el footer de Campus (`tutor-plugins/campusmenu.py`) o el dominio de Campus | `21.0.3-20261031` |
+| `openedx-mfe` | `MFE_IMAGE_TAG` | Cambió el menú o el footer de Campus (`tutor-plugins/campusmenu.py`) o el dominio de Campus | `21.0.3-20261105-dev` |
 | `campus-cms` | `CAMPUS_CMS_IMAGE_TAG` | Cambió `src/campus-cms` | `20261031-<commit>` |
-| `campus-web` | `CAMPUS_WEB_IMAGE_TAG` | Cambió `src/front-campus` | `20261031-<commit>` |
+| `campus-web` | `CAMPUS_WEB_IMAGE_TAG` | Cambió `src/front-campus` o su dominio | `20261105-<commit>-dev` |
 
-`<commit>` es `git -C src/campus-cms rev-parse --short HEAD` (o `src/front-campus`). Open edX, el CMS y Campus son la misma imagen en qa y prod: producción corre exactamente lo que se probó en QA. Los MFE llevan compilada la dirección de Campus, así que su imagen termina en `-qa` o `-prod` y cada ambiente construye la suya.
+`<commit>` es `git -C src/campus-cms rev-parse --short HEAD` (o `src/front-campus`). `openedx` y `campus-cms` son la misma imagen en los tres ambientes: se construyen en dev y su etiqueta se **promueve** de dev a qa y de qa a prod (se copia al archivo del siguiente ambiente), así que producción corre exactamente lo que se probó. `openedx-mfe` y `campus-web` guardan los dominios, así que hay una imagen por ambiente. El formato de las etiquetas es libre, pero estas dos deben ser distintas en cada ambiente: `make build` omite cualquier etiqueta que ya esté en el registro.
 
 **1. En tu máquina**, con el código en el commit que quieres publicar (y ya en GitHub):
 
 ```bash
-cp .env .env.local    # guarda tu .env de dev (.env.local tampoco se sube a Git)
-cp .env.qa .env       # o .env.prod: CAMPUS_ENV=qa (o prod)
-make build            # construye y sube solo las imágenes cuya etiqueta no está en el registro
-cp .env.local .env    # regresa a dev
-git commit -am "Imágenes: ..." && git push   # config/images.env, para que el servidor las baje
+cp .env .env.respaldo    # guarda tu .env de local (.env.respaldo tampoco se sube a Git)
+cp .env.dev .env         # o .env.qa, .env.prod: CAMPUS_ENV=dev (o qa, prod)
+make build               # construye y sube solo las imágenes cuya etiqueta no está en el registro
+cp .env.respaldo .env    # regresa a local
+git commit -am "Imágenes: ..." && git push   # config/images.*.env, para que el servidor las baje
 ```
 
-`make build` revisa en el registro cada imagen de `config/images.env`: las que ya están se omiten y solo construye las nuevas (si no cambiaste nada, no hace nada). Una etiqueta publicada no se reconstruye: cada cambio lleva etiqueta nueva. Si el CMS o Campus tienen cambios sin commit, avisa. Al pasar a producción, `make build` con `.env.prod` normalmente solo construye su MFE.
+`make build` revisa en el registro cada imagen del archivo del ambiente: las que ya están se omiten y solo construye las nuevas (si no cambiaste nada, no hace nada). Una etiqueta publicada no se reconstruye: cada cambio lleva etiqueta nueva. Si el CMS o Campus tienen cambios sin commit, avisa.
 
-`make build` no necesita llaves (no entran en las imágenes) y usa un Tutor temporal que se borra al terminar: no toca `.tutor-dev/`. Mientras construye, apaga dev (`make stop`) si tu máquina tiene poca memoria. Con un `.env` de dev, `make build` se niega.
+`make build` no necesita llaves (no entran en las imágenes) y usa un Tutor temporal que se borra al terminar: no toca `.tutor-dev/`. Mientras construye, apaga local (`make stop`) si tu máquina tiene poca memoria. Con un `.env` de local, `make build` se niega.
 
 **2. En el servidor** (`ssh` y `cd plataforma-equipo`):
 
@@ -604,7 +606,7 @@ make deploy
 
 Es seguro repetirlo: la segunda vez solo actualiza. No arranca mientras quede alguna llave en `...`.
 
-Si el código nuevo trae cambios en la plantilla (`.env.qa` o `.env.prod`), pásalos a tu `.env` del servidor y vuelve a correr `make deploy` (`git diff HEAD@{1} -- .env.qa` muestra qué cambió).
+Si el código nuevo trae cambios en la plantilla (`.env.dev`, `.env.qa` o `.env.prod`), pásalos a tu `.env` del servidor y vuelve a correr `make deploy` (`git diff HEAD@{1} -- .env.qa` muestra qué cambió).
 
 La primera vez, ya en el servidor:
 
@@ -619,7 +621,7 @@ Y programa la conciliación diaria de pagos (`crontab -e`):
 0 3 * * * cd ~/plataforma-equipo && make reconcile >> ~/reconcile.log 2>&1
 ```
 
-Para regresar a una versión anterior, vuelve a poner su etiqueta en `config/images.env` (ya está en el registro: no hay que construir), haz commit y corre `make deploy` en el servidor.
+Para regresar a una versión anterior, vuelve a poner su etiqueta en `config/images.<ambiente>.env` (ya está en el registro: no hay que construir), haz commit y corre `make deploy` en el servidor.
 
 ### 11.4 Probar el ciclo completo (en QA)
 
@@ -633,7 +635,7 @@ Para regresar a una versión anterior, vuelve a poner su etiqueta en `config/ima
 | Para qué | Comando |
 | --- | --- |
 | Cambié una llave | Edita `.env` en el servidor y `make config` |
-| Cambié el dominio, el registro o el correo | En la plantilla (commit y push) y en el `.env` del servidor, y `make config`. Si cambió el dominio de Campus o el footer, antes `make build` y después `make deploy` (el menú de los MFE se compila en su imagen) |
+| Cambié el dominio, el registro o el correo | En la plantilla (commit y push) y en el `.env` del servidor, y `make config`. Si cambió el dominio o el footer, antes una etiqueta nueva de `openedx-mfe` y `campus-web`, `make build` y después `make deploy` (los dominios van en esas imágenes) |
 | Ver errores | `make logs`, `make cms-logs`, `make web-logs` |
 | Estado | `make doctor` |
 | Respaldo / restaurar | `make backup` / `make restore BACKUP=backups/qa-...` |
@@ -647,8 +649,8 @@ Los secretos que genera Tutor (contraseñas de MySQL, la llave de Django, la del
 | Síntoma | Solución |
 | --- | --- |
 | El navegador dice que el certificado no es válido | El DNS aún no apunta al servidor o los puertos 80/443 están cerrados. Revisa `make tutor ARGS="local logs caddy"` |
-| `make deploy` dice `pull access denied` | Falta `docker login` en el servidor, o la etiqueta de `config/images.env` no se publicó: corre `make build` con el `.env` de ese ambiente (y haz commit/push de `config/images.env`) |
-| `Este .tutor/ es del ambiente ...` | El `.env` es copia de otra plantilla: copia la de este servidor y vuelve a llenar las llaves |
+| `make deploy` dice `pull access denied` | Falta `docker login` en el servidor, o la etiqueta de `config/images.<ambiente>.env` no se publicó: corre `make build` con el `.env` de ese ambiente (y haz commit/push de ese archivo) |
+| `.tutor/ es del ambiente ...` | El `.env` es copia de otra plantilla: copia la de este servidor y vuelve a llenar las llaves. Si renombraste el servidor a propósito (un servidor `qa` que ahora es `dev`), pon `CAMPUS_ENV` en `.env` y corre `echo dev > .tutor/campus-env` |
 | No llega el correo de activación | Revisa `SMTP_*` y la contraseña en `.env`, y `make logs` (busca `SMTP`) |
 | Campus no muestra quién inició sesión | Campus no es subdominio de `LMS_HOST`, o falta HTTPS: revisa `CAMPUS_WEB_URL` en `.env` |
 | Pagué y el acceso no llega | En Stripe → Webhooks revisa el endpoint: un 400 es un `whsec_` equivocado en `.env` (corrígelo y `make config`) |
