@@ -5,10 +5,11 @@ Tutor plugin: Campus main menu in the Open edX MFE headers.
   learner dashboard and the public Campus site (cursos, eventos).
 - Staff users (`is_staff`) also see "Administración" (Campus admin).
 - Desktop and mobile headers, plus the course header of the `learning` MFE.
-- Replaces the logo with the public site's (its public/logo.svg) and makes
-  every MFE header dark, with the same metrics as the public Nuxt site.
+- Replaces the logo with the public site's (its public/logo.svg) and gives
+  every MFE header the white compliance-v2 look (`--campus-header-*`), with
+  the same colors and metrics as the public Nuxt site.
 - Replaces the footer with the public site's (contact, address and map), in
-  the same MFEs as the dark header.
+  the same MFEs as the Campus header.
 
 The menu is compiled into the MFE image, so after changing it:
     tutor images build mfe && tutor dev start -d mfe
@@ -23,9 +24,9 @@ hooks.Filters.CONFIG_DEFAULTS.add_items(
     [
         # Public (Nuxt) site the menu links to.
         ("CAMPUS_MENU_SITE_URL", "http://www.local.openedx.io:3000"),
-        # MFEs with the dark Campus header, where the Campus logo replaces Indigo's.
+        # MFEs with the Campus header and footer, where the Campus logo replaces Indigo's.
         (
-            "CAMPUS_DARK_HEADER_MFES",
+            "CAMPUS_HEADER_MFES",
             [
                 "learner-dashboard",
                 "profile",
@@ -113,7 +114,7 @@ const CampusLogo = () => campusH(
 
 // tutor-indigo replaces the whole mobile header with just its logo (hidden
 // below, in runtime-final), so the mobile main menu slot never renders there:
-// this is the replacement, a dark bar with the logo and a collapsible menu.
+// this is the replacement, a bar with the logo and a collapsible menu.
 const CampusMobileHeaderMenu = () => campusH(
   'div',
   { className: 'campus-mobile-header' },
@@ -125,17 +126,17 @@ const CampusMobileHeaderMenu = () => campusH(
     }
     .campus-mobile-menu { position: relative; }
     .campus-mobile-menu > summary {
-      cursor: pointer; list-style: none; padding: .375rem .75rem; color: #fff;
+      cursor: pointer; list-style: none; padding: .375rem .75rem; color: var(--campus-header-text);
       border: 1px solid var(--campus-header-control-border); border-radius: 999px;
     }
     .campus-mobile-menu > summary::-webkit-details-marker { display: none; }
     .campus-mobile-menu > nav {
       position: absolute; top: calc(100% + .5rem); right: 0; min-width: 12rem; padding: .5rem 0;
       background: var(--campus-header-bg); border: 1px solid var(--campus-header-border);
-      border-radius: .375rem; box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .3);
+      border-radius: .375rem; box-shadow: 0 14px 26px rgba(0, 0, 0, .08);
     }
-    .campus-mobile-menu > nav .nav-link { color: #fff; }
-    .campus-mobile-menu > nav .nav-link:hover { background: var(--campus-header-hover); }
+    .campus-mobile-menu > nav .nav-link { color: var(--campus-header-link); }
+    .campus-mobile-menu > nav .nav-link:hover { color: var(--campus-header-text); background: var(--campus-header-hover); }
   `),
   campusH(CampusLogo),
   campusH(
@@ -160,7 +161,8 @@ const CampusFooter = () => {
     campusH('style', null, `
       #root .campus-footer {
         padding: 48px 0 24px; font-size: 1rem; line-height: 1.5;
-        background: var(--campus-header-bg); border-top: 1px solid var(--campus-header-border); color: #c6c9cb;
+        background: var(--campus-footer-bg); border-top: 1px solid var(--campus-header-border);
+        color: var(--campus-footer-text);
       }
       #root .campus-footer-container { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
       #root .campus-footer-grid { display: grid; gap: 32px; }
@@ -169,14 +171,14 @@ const CampusFooter = () => {
       #root .campus-footer-nav { display: flex; gap: 24px; }
       #root .campus-footer h2 {
         margin: 0 0 12px; font-size: .875rem; font-weight: 600; letter-spacing: .04em;
-        text-transform: uppercase; color: #fff;
+        text-transform: uppercase; color: var(--campus-header-text);
       }
       #root .campus-footer-list {
         display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0;
         list-style: none; font-style: normal;
       }
-      #root .campus-footer a { color: #c6c9cb; text-decoration: none; }
-      #root .campus-footer a:hover { color: var(--campus-header-active); }
+      #root .campus-footer a { color: var(--campus-footer-text); text-decoration: none; }
+      #root .campus-footer a:hover { color: var(--campus-link); text-decoration: underline; }
       #root .campus-footer-map-link { display: inline-block; margin-top: 12px; font-weight: 500; }
       #root .campus-footer iframe {
         display: block; width: 100%; height: 200px;
@@ -184,7 +186,7 @@ const CampusFooter = () => {
       }
       #root .campus-footer-bottom {
         margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--campus-header-border);
-        font-size: .875rem; color: #9ea2a7;
+        font-size: .875rem; color: var(--campus-header-link);
       }
       @media (min-width: 640px) {
         #root .campus-footer-grid { grid-template-columns: 1fr 1fr; }
@@ -247,37 +249,46 @@ const CampusFooter = () => {
   );
 };
 
-// Dark header in every MFE (desktop, mobile and course headers), matching the
-// public Nuxt site. Added once when the MFE loads; `#root` and `!important`
-// are needed to beat tutor-indigo's header styles.
+// White header in every MFE (desktop, mobile and course headers), like
+// compliance-v2 and the public Nuxt site. Colors from tema-compliance.css; the
+// public site uses the same ones (app/layouts/default.vue). Added once when
+// the MFE loads; `#root` and `!important` are needed to beat tutor-indigo's
+// header styles.
 if (typeof document !== 'undefined' && !document.getElementById('campus-header-styles')) {
   const campusHeaderStyles = document.createElement('style');
   campusHeaderStyles.id = 'campus-header-styles';
   campusHeaderStyles.textContent = `
     :root {
-      --campus-header-bg: #262828;
-      --campus-header-border: #3d4042;
-      --campus-header-hover: rgba(255, 255, 255, .1);
-      --campus-header-control-border: rgba(255, 255, 255, .35);
-      --campus-header-active: #9cc0f2;
+      --campus-header-bg: #fff;                   /* --header-bg */
+      --campus-header-border: #e6eff5;            /* --header-border */
+      --campus-header-text: #101010;              /* --color-text-strong: active item, user */
+      --campus-header-link: #606060;              /* --color-text-navigation: inactive items */
+      --campus-header-hover: #f8f7f6;             /* --menu-item-active-bg */
+      --campus-header-control-border: #bac7d5;    /* --color-border-input */
+      --campus-header-active: #9b8467;            /* --color-primary: active underline */
+      --campus-footer-bg: #f9fafb;                /* --footer-bg */
+      --campus-footer-text: #555;                 /* --color-text-body */
+      --campus-link: #0a19cd;                     /* --color-accent */
     }
     #root header.site-header-desktop,
     #root header.site-header-mobile,
     #root header.learning-header {
       background: var(--campus-header-bg);
-      color: #fff;
+      color: var(--campus-header-text);
       box-shadow: none;
       border-bottom: 1px solid var(--campus-header-border);
     }
     #root header.site-header-desktop .main-nav a.nav-link,
-    #root header.learning-header .nav a.nav-link,
+    #root header.learning-header .nav a.nav-link {
+      color: var(--campus-header-link);
+    }
     #root header.site-header-desktop .btn-link,
     #root header.learning-header .course-title-lockup,
     #root header.learning-header .course-title-lockup .title,
     #root header.learning-header .course-title-lockup .org,
     #root header.learning-header .text-gray-700,
     #root header.site-header-mobile .icon-button {
-      color: #fff;
+      color: var(--campus-header-text);
     }
     /* Same metrics as the public Nuxt site header (app/layouts/default.vue). */
     #root header.site-header-desktop .container-fluid {
@@ -307,21 +318,22 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
     #root header.site-header-desktop .main-nav a.nav-link:focus,
     #root header.learning-header .nav a.nav-link:hover,
     #root header.learning-header .nav a.nav-link:focus {
-      color: #fff;
+      color: var(--campus-header-text);
       background: transparent;
       text-decoration: none;
       border-bottom-color: var(--campus-header-active);
     }
     #root header.site-header-desktop .main-nav a.nav-link.active {
-      color: var(--campus-header-active);
+      color: var(--campus-header-text);
       background: transparent;
+      border-bottom-color: var(--campus-header-active);
     }
     #root header.site-header-desktop .menu > button,
     #root header.site-header-desktop .btn-outline-primary,
     #root header.learning-header .user-dropdown > button,
     #root header.learning-header .btn-outline-primary {
       background: transparent !important;
-      color: #fff !important;
+      color: var(--campus-header-text) !important;
       border: 1px solid var(--campus-header-control-border) !important;
     }
     #root header.site-header-desktop .menu > button:hover,
@@ -331,14 +343,14 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
       background: var(--campus-header-hover) !important;
     }
     #root header.learning-header .user-dropdown > button::after {
-      border-color: #fff !important;
+      border-color: var(--campus-header-text) !important;
     }
     #root header.site-header-mobile .icon-button:hover,
     #root header.site-header-mobile .icon-button:focus {
       background: var(--campus-header-hover);
     }
     #root header .hamburger-menu .line {
-      background: #fff;
+      background: var(--campus-header-text);
     }
     #root header.site-header-mobile .menu-content,
     #root header.site-header-mobile .nav.flex-column {
@@ -346,11 +358,11 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
     }
     #root header.site-header-mobile .menu-content a,
     #root header.site-header-mobile .nav.flex-column .nav-link {
-      color: #fff;
+      color: var(--campus-header-link);
     }
     #root header.site-header-mobile .menu-content a:hover {
       background: var(--campus-header-hover);
-      color: #fff;
+      color: var(--campus-header-text);
     }
   `;
   document.head.appendChild(campusHeaderStyles);
@@ -362,13 +374,13 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
             # tutor-indigo inserts per MFE: `custom_logo` in the desktop header and
             # its logo-only mobile header (`theme_switch_button`, replaced by
             # CampusMobileHeaderMenu).
-            # The white logo only goes in the MFEs whose header is dark (the
-            # frontend-component-header ones). Others keep Indigo's logo: authn
-            # (login/register, light page), authoring (Studio has its own header)
-            # and admin-console.
+            # The Campus logo, header and footer only go in the
+            # frontend-component-header MFEs. Others keep Indigo's: authn
+            # (login/register), authoring (Studio has its own header) and
+            # admin-console.
             "mfe-env-config-runtime-final",
             """
-    if ({{ CAMPUS_DARK_HEADER_MFES | tojson }}.includes(process.env.APP_ID)) {
+    if ({{ CAMPUS_HEADER_MFES | tojson }}.includes(process.env.APP_ID)) {
       addPlugins(config, 'logo_slot', [
         { op: PLUGIN_OPERATIONS.Hide, widgetId: 'default_contents' },
         { op: PLUGIN_OPERATIONS.Hide, widgetId: 'custom_logo' },
