@@ -9,7 +9,10 @@ Tutor plugin: Campus, the public site (Nuxt), in `tutor local` (dev, qa, prod).
 - `tutor images build/push/pull campus-web` builds src/front-campus/Dockerfile
   and moves the image through the registry.
 
-In `tutor dev` nothing changes: Campus runs on the host with `make front`.
+- The LMS home ("/") redirects to `CAMPUS_WEB_URL`, in every environment.
+
+In `tutor dev` Campus runs on the host with `make front`; only the home
+redirect applies there.
 """
 import os
 
@@ -27,6 +30,30 @@ hooks.Filters.CONFIG_DEFAULTS.add_items(
 
 hooks.Filters.ENV_PATCHES.add_items(
     [
+        (
+            # The LMS home ("/") is Campus, in every environment (`tutor dev` has
+            # no Caddy in front of the LMS). Only the root: login, APIs, OAuth
+            # and courseware must keep working. 302 so browsers don't cache it.
+            # The middleware lives in the settings module itself (`__name__`),
+            # so it needs no code in the openedx image, only `make config`.
+            "openedx-lms-common-settings",
+            """
+from django.http import HttpResponseRedirect as _CampusRedirect
+
+
+class CampusHomeRedirectMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.method in ("GET", "HEAD") and request.path in ("/", "/index.html"):
+            return _CampusRedirect("{{ CAMPUS_WEB_URL }}")
+        return self.get_response(request)
+
+
+MIDDLEWARE.insert(0, __name__ + ".CampusHomeRedirectMiddleware")
+""",
+        ),
         (
             "local-docker-compose-prod-services",
             """
