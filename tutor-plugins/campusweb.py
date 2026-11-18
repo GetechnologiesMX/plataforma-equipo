@@ -9,10 +9,11 @@ Tutor plugin: Campus, the public site (Nuxt), in `tutor local` (dev, qa, prod).
 - `tutor images build/push/pull campus-web` builds src/front-campus/Dockerfile
   and moves the image through the registry.
 
-- The LMS home ("/") redirects to `CAMPUS_WEB_URL`, in every environment.
+- The LMS home ("/") redirects to `CAMPUS_WEB_URL` and the learner dashboard
+  ("/dashboard") to `CAMPUS_WEB_URL/mis-cursos`, in every environment.
 
-In `tutor dev` Campus runs on the host with `make front`; only the home
-redirect applies there.
+In `tutor dev` Campus runs on the host with `make front`; only the
+redirects apply there.
 """
 import os
 
@@ -31,9 +32,12 @@ hooks.Filters.CONFIG_DEFAULTS.add_items(
 hooks.Filters.ENV_PATCHES.add_items(
     [
         (
-            # The LMS home ("/") is Campus, in every environment (`tutor dev` has
-            # no Caddy in front of the LMS). Only the root: login, APIs, OAuth
-            # and courseware must keep working. 302 so browsers don't cache it.
+            # The LMS home ("/") is Campus and its dashboard ("/dashboard") is
+            # Campus' mis-cursos, in every environment (`tutor dev` has no Caddy
+            # in front of the LMS). The MFEs' "Dashboard" links (user menu,
+            # course exit buttons) and the post-login default all go through
+            # /dashboard. Only these paths: login, APIs, OAuth and courseware
+            # must keep working. 302 so browsers don't cache it.
             # The middleware lives in the settings module itself (`__name__`),
             # so it needs no code in the openedx image, only `make config`.
             "openedx-lms-common-settings",
@@ -46,8 +50,11 @@ class CampusHomeRedirectMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method in ("GET", "HEAD") and request.path in ("/", "/index.html"):
-            return _CampusRedirect("{{ CAMPUS_WEB_URL }}")
+        if request.method in ("GET", "HEAD"):
+            if request.path in ("/", "/index.html"):
+                return _CampusRedirect("{{ CAMPUS_WEB_URL }}")
+            if request.path in ("/dashboard", "/dashboard/"):
+                return _CampusRedirect("{{ CAMPUS_WEB_URL.rstrip('/') }}/mis-cursos")
         return self.get_response(request)
 
 
