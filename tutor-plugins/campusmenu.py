@@ -2,7 +2,7 @@
 Tutor plugin: Campus main menu in the Open edX MFE headers.
 
 - Replaces the default main menu ("Courses", "Programs", ...) with links to the
-  learner dashboard and the public Campus site (cursos, eventos).
+  public Campus site (mis-cursos, cursos, eventos).
 - Staff users (`is_staff`) also see "Administración" (Campus admin).
 - Desktop and mobile headers, plus the course header of the `learning` MFE.
 - Replaces the logo with the public site's (its public/logo.svg) and gives
@@ -64,7 +64,6 @@ hooks.Filters.ENV_PATCHES.add_items(
             "mfe-env-config-buildtime-imports",
             """
 import { createElement as campusH, useContext as campusUseContext } from 'react';
-import { getConfig as campusGetConfig } from '@edx/frontend-platform';
 import { AppContext as CampusAppContext } from '@edx/frontend-platform/react';
 """,
         ),
@@ -76,7 +75,7 @@ const campusSite = '{{ CAMPUS_MENU_SITE_URL }}'.replace(/\\/$/, '');
 const campusMenuLinks = (user) => {
   const site = campusSite;
   const links = [
-    { id: 'dashboard', label: 'Mis cursos', href: `${campusGetConfig().LMS_BASE_URL}/dashboard` },
+    { id: 'mis-cursos', label: 'Mis cursos', href: `${site}/mis-cursos` },
     { id: 'cursos', label: 'Cursos', href: `${site}/cursos` },
     { id: 'eventos', label: 'Eventos', href: `${site}/eventos` },
   ];

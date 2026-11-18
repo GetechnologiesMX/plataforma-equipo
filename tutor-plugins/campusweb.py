@@ -70,7 +70,6 @@ campus-web:
     # Links the browser follows.
     NUXT_PUBLIC_LMS_URL: "{{ scheme }}://{{ LMS_HOST }}"
     NUXT_PUBLIC_STUDIO_URL: "{{ scheme }}://{{ CMS_HOST }}"
-    NUXT_PUBLIC_LEARNER_DASHBOARD_URL: "{{ scheme }}://{{ MFE_HOST }}/learner-dashboard/"
     NUXT_PUBLIC_PROFILE_URL: "{{ scheme }}://{{ MFE_HOST }}/profile/u/"
     NUXT_PUBLIC_LEARNING_MFE_URL: "{{ scheme }}://{{ MFE_HOST }}/learning"
   volumes:
