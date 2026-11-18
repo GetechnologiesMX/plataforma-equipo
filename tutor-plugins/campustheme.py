@@ -21,7 +21,21 @@ hooks.Filters.CONFIG_DEFAULTS.add_items(
     [
         # Campus Paragon theme. Override it to test another file.
         ("CAMPUS_THEME_PARAGON_URL", "{{ CAMPUS_WEB_URL }}/theme/campus-paragon.css"),
+        # Logo at the top of the LMS emails (password reset, activation...). PNG, not
+        # SVG: Gmail and Outlook don't show SVG images. Generated from public/logo.svg
+        # (src/front-campus/public/email-logo.png). Without it, emails use Indigo's logo.
+        ("CAMPUS_THEME_EMAIL_LOGO_URL", "{{ CAMPUS_WEB_URL }}/email-logo.png"),
     ]
+)
+
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "openedx-lms-common-settings",
+        """
+# Campus logo in the emails (tutor-plugins/campustheme.py).
+LOGO_URL_PNG_FOR_EMAIL = "{{ CAMPUS_THEME_EMAIL_LOGO_URL }}"
+""",
+    )
 )
 
 # LOW priority: it must render after tutor-indigo's patch, which sets
