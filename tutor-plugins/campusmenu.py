@@ -89,7 +89,7 @@ const CampusMenuLinks = ({ className }) => {
   const { authenticatedUser } = campusUseContext(CampusAppContext);
   return campusH(
     'nav',
-    { 'aria-label': 'Main', className },
+    { 'aria-label': 'Principal', className },
     campusMenuLinks(authenticatedUser).map((link) => campusH(
       'a',
       { key: link.id, className: 'nav-link', href: link.href },

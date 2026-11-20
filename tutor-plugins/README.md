@@ -14,3 +14,4 @@ dentro de la imagen, por ejemplo:
 | `campusmenu.py` | Menú, logo y footer de Campus en los MFE (se compila en la imagen `mfe`) |
 | `campusweb.py` | Campus (Nuxt) como contenedor en `tutor local` (QA), detrás de Caddy |
 | `campustheme.py` | Colores de Campus en los MFE (botones, links, formularios): carga `src/front-campus/public/theme/campus-paragon.css` encima del tema de Indigo. Va en la configuración del LMS, no en la imagen: basta `make config` |
+| `campusidioma.py` | Todos los MFE en el idioma de la plataforma (`LANGUAGE_CODE`, español) aunque el navegador esté en inglés: fija la cookie `openedx-language-preference`, y corrige con `traducciones/es_419.json` los textos que la traducción oficial deja vacíos o rotos (esos salen en inglés). Se compila en la imagen `mfe` |
