@@ -2,6 +2,9 @@
 # El ambiente lo dice .env (copia de .env.local, .env.dev, .env.qa o .env.prod).
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
+# Ningún target crea un archivo: sin esto, `make config` no corre porque existe la carpeta config/.
+.PHONY: help setup update start stop restart logs cms-logs web-logs contador reconcile shell admin \
+	tutor backup restore doctor config front stripe build deploy
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'

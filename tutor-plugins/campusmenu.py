@@ -10,9 +10,21 @@ Tutor plugin: Campus main menu in the Open edX MFE headers.
   the same colors and metrics as the public Nuxt site.
 - Replaces the footer with the public site's (contact, address and map), in
   the same MFEs as the Campus header.
+- Studio (the `authoring` MFE) has its own header, with the course menus
+  (Contenido, Configuración, Herramientas): it keeps them, with the Campus
+  look and logo, a "Campus" dropdown with the Campus links next to the user
+  menu (everything in one row) and the Campus footer.
+- The `LOGO_*` of the MFE config point to the Campus logo, for the MFEs that
+  draw it from there (Studio, login/registration, admin console).
+- Learner dashboard: course cards with the Campus look, without the green
+  "verified" ribbon that stuck out of the course image.
+
+The legacy LMS pages (/courses, /about...) get the same header and footer from
+tutor-plugins/campuslms.py.
 
 The menu is compiled into the MFE image, so after changing it:
     tutor images build mfe && tutor dev start -d mfe
+The `LOGO_*` settings go to the LMS instead: `make config`.
 
 The JS uses aliased imports and `createElement` instead of JSX so it does not
 clash with (or depend on) the identifiers that tutor-indigo imports.
@@ -64,6 +76,7 @@ hooks.Filters.ENV_PATCHES.add_items(
             "mfe-env-config-buildtime-imports",
             """
 import { createElement as campusH, useContext as campusUseContext } from 'react';
+import { Dropdown as CampusDropdown } from '@openedx/paragon';
 import { AppContext as CampusAppContext } from '@edx/frontend-platform/react';
 """,
         ),
@@ -89,7 +102,7 @@ const CampusMenuLinks = ({ className }) => {
   const { authenticatedUser } = campusUseContext(CampusAppContext);
   return campusH(
     'nav',
-    { 'aria-label': 'Main', className },
+    { 'aria-label': 'Principal', className },
     campusMenuLinks(authenticatedUser).map((link) => campusH(
       'a',
       { key: link.id, className: 'nav-link', href: link.href },
@@ -103,6 +116,32 @@ const CampusMainMenu = () => campusH(CampusMenuLinks, { className: 'nav main-nav
 const CampusMobileMainMenu = () => campusH(CampusMenuLinks, { className: 'nav flex-column' });
 
 const CampusLearningMenu = () => campusH(CampusMenuLinks, { className: 'nav d-none d-md-flex mr-2' });
+
+// Studio header: its course menus (Contenido, Configuración, Herramientas) are the
+// work tools and stay in sight; the Campus links, which leave Studio, go together
+// in one "Campus" dropdown next to the user menu, so everything fits in one row.
+// Same Paragon dropdown as Studio's menus (keyboard, closes on outside click).
+const CampusStudioMenu = () => {
+  const { authenticatedUser } = campusUseContext(CampusAppContext);
+  const links = campusMenuLinks(authenticatedUser);
+  return campusH(
+    CampusDropdown,
+    { className: 'campus-studio-menu' },
+    campusH(
+      CampusDropdown.Toggle,
+      { id: 'campus-studio-menu', variant: 'outline-primary' },
+      'Campus',
+    ),
+    campusH(
+      CampusDropdown.Menu,
+      { align: 'right' },
+      links.map((link) => [
+        link.id === 'admin' && campusH(CampusDropdown.Divider, { key: 'admin-divider' }),
+        campusH(CampusDropdown.Item, { key: link.id, href: link.href }, link.label),
+      ]),
+    ),
+  );
+};
 
 // Same logo file as the public site (its public/logo.svg), linking to its home.
 const CampusLogo = () => campusH(
@@ -363,6 +402,140 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
       background: var(--campus-header-hover);
       color: var(--campus-header-text);
     }
+
+    /* Studio (authoring MFE): its own header, with the same look. */
+    #root .studio-header {
+      height: auto;
+      background: var(--campus-header-bg);
+      box-shadow: none;
+      border-bottom: 1px solid var(--campus-header-border);
+    }
+    #root .studio-header > .container-xl {
+      max-width: none;
+      padding: 0 24px !important;
+    }
+    #root .studio-header header.pgn__action-row {
+      min-height: 64px;
+    }
+    #root .studio-header .logo {
+      height: 28px;
+      padding: 18px 0;
+      margin-right: 24px;
+    }
+    #root .studio-header .course-title-lockup {
+      border-right-color: var(--campus-header-border);
+    }
+    #root .studio-header .course-title-lockup span {
+      color: var(--campus-header-text) !important;
+    }
+    #root .studio-header .dropdown > .btn-outline-primary,
+    #root .studio-header .btn-tertiary {
+      background: transparent !important;
+      color: var(--campus-header-link) !important;
+      border: 1px solid transparent !important;
+      font-weight: 500;
+      box-shadow: none !important;
+    }
+    #root .studio-header .dropdown > .btn-outline-primary:hover,
+    #root .studio-header .dropdown > .btn-outline-primary[aria-expanded="true"],
+    #root .studio-header .btn-tertiary:hover {
+      color: var(--campus-header-text) !important;
+      background: var(--campus-header-hover) !important;
+    }
+    /* The user menu, like the Campus user button. */
+    #root .studio-header #user-dropdown-menu {
+      color: var(--campus-header-text) !important;
+      border-color: var(--campus-header-control-border) !important;
+    }
+    /* One row always: the menus never wrap (Bootstrap's .nav does) and the
+       course title (logo + lockup, a fixed 25% in Studio) is what gives way,
+       cut with an ellipsis. */
+    #root .studio-header header.pgn__action-row,
+    #root .studio-header header.pgn__action-row .nav {
+      flex-wrap: nowrap;
+    }
+    #root .studio-header header.pgn__action-row > .w-25 {
+      flex: 0 1 25%;
+      width: auto !important;
+      min-width: 0;
+    }
+    #root .studio-header header.pgn__action-row > .w-25 .logo {
+      flex-shrink: 0;
+    }
+    #root .studio-header .dropdown > .btn {
+      white-space: nowrap;
+    }
+    /* The Campus dropdown, next to the user menu. */
+    #root .studio-header .campus-studio-menu {
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+    #root .studio-header .campus-studio-menu .dropdown-menu {
+      min-width: 12rem;
+    }
+    #root .studio-header .campus-studio-menu .dropdown-item {
+      color: var(--campus-header-link);
+    }
+    #root .studio-header .campus-studio-menu .dropdown-item:hover,
+    #root .studio-header .campus-studio-menu .dropdown-item:focus {
+      color: var(--campus-header-text);
+      background: var(--campus-header-hover);
+    }
+
+    /* Learner dashboard: course cards like the Campus ones. */
+    #root .course-card .pgn__card {
+      overflow: hidden;
+      border: 1px solid #e8e9ea;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgb(37 42 49 / 6%), 0 4px 16px rgb(37 42 49 / 6%);
+      transition: box-shadow .2s ease;
+    }
+    #root .course-card .pgn__card:hover {
+      box-shadow: 0 2px 4px rgb(37 42 49 / 8%), 0 8px 24px rgb(37 42 49 / 10%);
+    }
+    #root .course-card .pgn__card-wrapper-image-cap {
+      position: relative;
+      overflow: hidden !important;
+      background: #f5f3f1;
+    }
+    #root .course-card .pgn__card-image-cap {
+      height: 100%;
+      min-height: 160px;
+      object-fit: cover;
+      border-radius: 0 !important;
+    }
+    #root .course-card .course-card-title {
+      color: #252a31;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    #root .course-card a.course-card-title:hover {
+      color: #7c6a52;
+    }
+    /* "Verified": a small label on the image instead of the green ribbon
+       (verified-ribbon.png), which stuck out of the image's corner. */
+    #root .course-card .course-card-verify-ribbon-container {
+      top: 12px;
+      left: 12px;
+      bottom: auto;
+      width: auto;
+      text-align: left;
+    }
+    #root .course-card .course-card-verify-ribbon-container > img {
+      display: none;
+    }
+    #root .course-card .course-card-verify-ribbon-container .badge {
+      width: auto !important;
+      padding: 4px 10px;
+      border: 1px solid #e5e0da;
+      border-radius: 999px !important;
+      background: rgb(255 255 255 / 94%);
+      color: #6c5c48;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+      box-shadow: 0 1px 2px rgb(37 42 49 / 10%);
+    }
   `;
   document.head.appendChild(campusHeaderStyles);
 }
@@ -408,6 +581,20 @@ if (typeof document !== 'undefined' && !document.getElementById('campus-header-s
 )
 
 
+# Campus logo for the MFEs that take it from the config instead of a plugin slot
+# (Studio's header, admin console...). LMS settings: `make config`, no MFE rebuild.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "mfe-lms-common-settings",
+        """
+# Campus logo in the MFEs (tutor-plugins/campusmenu.py).
+for _campus_logo_key in ("LOGO_URL", "LOGO_WHITE_URL", "LOGO_TRADEMARK_URL"):
+    MFE_CONFIG[_campus_logo_key] = "{{ CAMPUS_MENU_SITE_URL.rstrip('/') }}/logo.svg"
+""",
+    )
+)
+
+
 def _replace_slot(mfe: str, slot: str, widget_id: str, component: str) -> list[tuple[str, str, str]]:
     return [
         (mfe, slot, "{ op: PLUGIN_OPERATIONS.Hide, widgetId: 'default_contents' }"),
@@ -437,6 +624,18 @@ def _insert_into_slot(mfe: str, slot: str, widget_id: str, component: str) -> tu
 
 PLUGIN_SLOTS.add_items(
     [
+        # Studio: Campus footer (tutor-indigo's `read_theme_cookie` widget stays) and
+        # the "Campus" dropdown before the search button.
+        *_replace_slot("authoring", "org.openedx.frontend.layout.studio_footer.v1", "campus_footer", "CampusFooter"),
+        (
+            "authoring",
+            "org.openedx.frontend.layout.studio_header_search_button_slot.v1",
+            """
+        {
+          op: PLUGIN_OPERATIONS.Insert,
+          widget: { id: 'campus_studio_menu', type: DIRECT_PLUGIN, priority: 5, RenderWidget: CampusStudioMenu },
+        }""",
+        ),
         *_replace_slot("all", "desktop_main_menu_slot", "campus_main_menu", "CampusMainMenu"),
         *_replace_slot("all", "mobile_main_menu_slot", "campus_mobile_main_menu", "CampusMobileMainMenu"),
         # Course pages use the learning header, which has no main menu slot.
