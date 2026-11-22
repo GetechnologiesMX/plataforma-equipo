@@ -11,7 +11,8 @@ dentro de la imagen, por ejemplo:
 | --- | --- |
 | `campuscms.py` | Enlace a `src/campus-cms/tutor/campuscms.py`: el CMS en `tutor dev` y en `tutor local` (QA) |
 | `coursepayments.py` | Enlace a `src/openedx-course-payments/tutor/coursepayments.py`: ajustes del plugin del LMS |
-| `campusmenu.py` | Menú, logo y footer de Campus en los MFE (se compila en la imagen `mfe`) |
+| `campusmenu.py` | Menú, logo y footer de Campus en los MFE (se compila en la imagen `mfe`); en Studio (`authoring`) conserva sus menús de curso con el look, los links y el footer de Campus; tarjetas del learner-dashboard sin la cinta verde de "verificado". El logo de Campus en la config de los MFE (`LOGO_URL`) va en el LMS: `make config` |
+| `campuslms.py` | Header, footer y catálogo (`/courses`, en español) de Campus en las páginas clásicas del LMS: sus plantillas en `campuslms/indigo/` reemplazan las de Indigo. En local basta `make config`; en dev, qa y prod van en la imagen `openedx` (`make build`) |
 | `campusweb.py` | Campus (Nuxt) como contenedor en `tutor local` (QA), detrás de Caddy |
 | `campustheme.py` | Colores de Campus en los MFE (botones, links, formularios): carga `src/front-campus/public/theme/campus-paragon.css` encima del tema de Indigo. Va en la configuración del LMS, no en la imagen: basta `make config` |
 | `campusidioma.py` | Todos los MFE en el idioma de la plataforma (`LANGUAGE_CODE`, español) aunque el navegador esté en inglés: fija la cookie `openedx-language-preference`, y corrige con `traducciones/es_419.json` los textos que la traducción oficial deja vacíos o rotos (esos salen en inglés). Se compila en la imagen `mfe` |

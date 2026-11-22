@@ -1,0 +1,114 @@
+## mako
+## Campus footer for the legacy LMS pages, the same as the public site's and the
+## MFEs' (contact, address and map). Replaces tutor-indigo's
+## (tutor-plugins/campuslms.py). The contact details come from CAMPUS_FOOTER
+## (tutor-plugins/campusmenu.py), filled in by Tutor before the LMS renders it.
+<%page expression_filter="h"/>
+<%!
+  from datetime import datetime
+%>
+<%namespace name='static' file='static_content.html'/>
+<%
+  campus_site = "{{ CAMPUS_MENU_SITE_URL.rstrip('/') }}"
+  campus_lat = {{ CAMPUS_FOOTER['lat'] }}
+  campus_lon = {{ CAMPUS_FOOTER['lon'] }}
+  campus_map_embed = "https://www.openstreetmap.org/export/embed.html?bbox={},{},{},{}&layer=mapnik&marker={},{}".format(
+      campus_lon - 0.006, campus_lat - 0.004, campus_lon + 0.006, campus_lat + 0.004, campus_lat, campus_lon)
+  campus_map_link = "https://www.openstreetmap.org/?mlat={0}&mlon={1}#map=17/{0}/{1}".format(campus_lat, campus_lon)
+%>
+<style>
+  footer.campus-footer {
+    margin-top: 56px; padding: 48px 0 24px;
+    background: var(--campus-footer-bg, #f9fafb); border-top: 1px solid var(--campus-header-border, #e6eff5);
+    color: var(--campus-footer-text, #555);
+    font-family: var(--campus-font, 'DM Sans', 'Helvetica Neue', Arial, sans-serif); font-size: 1rem; line-height: 1.5;
+    text-align: left;
+  }
+  .campus-footer .campus-footer-container { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  .campus-footer .campus-footer-grid { display: grid; gap: 32px; }
+  .campus-footer .campus-logo img { display: block; height: 28px; width: auto; }
+  .campus-footer .campus-footer-brand p { margin: 12px 0 16px; color: inherit; font-size: 1rem; }
+  .campus-footer .campus-footer-nav { display: flex; gap: 24px; }
+  .campus-footer h2 {
+    margin: 0 0 12px; padding: 0; font-size: .875rem; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--campus-header-text, #101010); line-height: 1.5;
+  }
+  .campus-footer .campus-footer-list {
+    display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0;
+    list-style: none; font-style: normal;
+  }
+  .campus-footer .campus-footer-list li { margin: 0; padding: 0; }
+  .campus-footer a { color: var(--campus-footer-text, #555); text-decoration: none; }
+  .campus-footer a:hover, .campus-footer a:focus { color: var(--campus-link, #0a19cd); text-decoration: underline; }
+  .campus-footer .campus-footer-map-link { display: inline-block; margin-top: 12px; font-weight: 500; }
+  .campus-footer iframe {
+    display: block; width: 100%; height: 200px;
+    border: 1px solid var(--campus-header-border, #e6eff5); border-radius: .375rem;
+  }
+  .campus-footer .campus-footer-bottom {
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--campus-header-border, #e6eff5);
+    font-size: .875rem; color: var(--campus-header-link, #606060);
+  }
+  @media (min-width: 640px) {
+    .campus-footer .campus-footer-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 900px) {
+    .campus-footer .campus-footer-grid { grid-template-columns: 1.2fr 1fr 1fr 1.4fr; }
+  }
+</style>
+<footer class="campus-footer"
+  % if bidi:
+    dir=${bidi}
+  % endif
+>
+  <div class="campus-footer-container campus-footer-grid">
+    <div class="campus-footer-brand">
+      <a class="campus-logo" href="${campus_site}/">
+        <img src="${campus_site}/logo.svg" alt="Campus">
+      </a>
+      <p>Cursos en línea con acceso de por vida.</p>
+      <nav class="campus-footer-nav" aria-label="Pie de página">
+        <a href="${campus_site}/cursos">Cursos</a>
+        <a href="${campus_site}/eventos">Eventos</a>
+      </nav>
+    </div>
+
+    <div>
+      <h2>Contacto</h2>
+      <ul class="campus-footer-list">
+        <li><a href="mailto:{{ CAMPUS_FOOTER['email'] }}">{{ CAMPUS_FOOTER['email'] }}</a></li>
+        <li><a href="tel:{{ CAMPUS_FOOTER['phone'].replace(' ', '') }}">{{ CAMPUS_FOOTER['phone'] }}</a></li>
+        <li>{{ CAMPUS_FOOTER['hours'] }}</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>Dirección</h2>
+      <address class="campus-footer-list">
+        {% for line in CAMPUS_FOOTER['address'] %}
+        <span>{{ line }}</span>
+        {% endfor %}
+      </address>
+      <a class="campus-footer-map-link" href="${campus_map_link}" target="_blank" rel="noopener">Cómo llegar</a>
+    </div>
+
+    <div>
+      <iframe src="${campus_map_embed}" title="Mapa de la ubicación de Campus" loading="lazy" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </div>
+
+  <div class="campus-footer-container campus-footer-bottom">
+    © ${datetime.now().year} Campus. Todos los derechos reservados.
+  </div>
+</footer>
+% if include_dependencies:
+  <%static:js group='base_vendor'/>
+  <%static:css group='style-vendor'/>
+  <%include file="widgets/segment-io.html" />
+  <%include file="widgets/segment-io-footer.html" />
+% endif
+% if footer_css_urls:
+  % for url in footer_css_urls:
+    <link rel="stylesheet" type="text/css" href="${url}"></link>
+  % endfor
+% endif

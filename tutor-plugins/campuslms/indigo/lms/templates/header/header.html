@@ -1,0 +1,262 @@
+## mako
+## Campus header for the legacy LMS pages (/courses, /about, the instructor
+## dashboard...), the same as the public site's and the MFEs'. Replaces
+## tutor-indigo's (tutor-plugins/campuslms.py). Rendered first by Tutor (Jinja:
+## {{ CAMPUS_MENU_SITE_URL }}) and then by the LMS (Mako).
+
+<%page expression_filter="h" args="online_help_token, use_cookie_banner=False"/>
+
+<%namespace name='static' file='../static_content.html'/>
+<%namespace file='../main.html' import="login_query"/>
+<%!
+from urllib.parse import quote
+
+from django.conf import settings
+from django.urls import reverse
+from django.utils.translation import gettext as _
+
+from lms.djangoapps.ccx.overrides import get_current_ccx
+from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_enabled, released_languages
+%>
+
+<%
+  campus_site = "{{ CAMPUS_MENU_SITE_URL.rstrip('/') }}"
+  campus_links = []
+  if user.is_authenticated:
+      campus_links.append(("Mis cursos", campus_site + "/mis-cursos"))
+  campus_links.append(("Cursos", campus_site + "/cursos"))
+  campus_links.append(("Eventos", campus_site + "/eventos"))
+  if user.is_authenticated and user.is_staff:
+      campus_links.append(("Administración", campus_site + "/admin"))
+
+  allows_login = not settings.FEATURES.get('DISABLE_LOGIN_BUTTON') and not combined_login_and_register
+  profile_url = getattr(settings, 'PROFILE_MICROFRONTEND_URL', '')
+  account_url = getattr(settings, 'ACCOUNT_MICROFRONTEND_URL', '') or reverse('account_settings')
+  logout_url = reverse('logout') + '?redirect_url=' + quote(campus_site + '/', safe='')
+
+  course_title = None
+  if course:
+      course_title = course.display_name_with_default
+      if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
+          ccx = get_current_ccx(course.id)
+          if ccx:
+              course_title = ccx.display_name
+%>
+
+<%def name="campus_nav_links(links)">
+  % for label, href in links:
+    <a class="campus-nav-link" href="${href}">${label}</a>
+  % endfor
+</%def>
+
+<%def name="campus_account(allows_login, profile_url, account_url, logout_url)">
+  % if user.is_authenticated:
+    <details class="campus-user-menu">
+      <summary title="${user.email}">
+        ${user.username}
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="campus-user-menu-content">
+        % if profile_url:
+          <a href="${profile_url}${user.username}">Perfil</a>
+        % endif
+        <a href="${account_url}">Cuenta</a>
+        <a href="${logout_url}">Cerrar sesión</a>
+      </div>
+    </details>
+  % elif allows_login:
+    <a class="campus-account-link" href="/login${login_query()}">Iniciar sesión</a>
+    % if not disable_register_button:
+      <a class="campus-btn-primary" href="/register${login_query()}">Crear cuenta</a>
+    % endif
+  % endif
+</%def>
+
+<style>
+  @font-face { font-family: 'DM Sans'; src: url('${campus_site}/theme/fonts/dm-sans/DMSans-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'DM Sans'; src: url('${campus_site}/theme/fonts/dm-sans/DMSans-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'DM Sans'; src: url('${campus_site}/theme/fonts/dm-sans/DMSans-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'DM Sans'; src: url('${campus_site}/theme/fonts/dm-sans/DMSans-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+
+  /* Same colors as the public site and the MFEs (tutor-plugins/campusmenu.py). */
+  :root {
+    --campus-header-bg: #fff;
+    --campus-header-border: #e6eff5;
+    --campus-header-text: #101010;
+    --campus-header-link: #606060;
+    --campus-header-hover: #f8f7f6;
+    --campus-header-control-border: #bac7d5;
+    --campus-header-active: #9b8467;
+    --campus-primary: #7c6a52;
+    --campus-primary-hover: #6c5c48;
+    --campus-footer-bg: #f9fafb;
+    --campus-footer-text: #555;
+    --campus-link: #0a19cd;
+    --campus-font: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  }
+  body, body button, body input, body select, body textarea,
+  body h1, body h2, body h3, body h4, body h5, body h6 {
+    font-family: var(--campus-font);
+  }
+
+  header.campus-header {
+    position: sticky; top: 0; z-index: 1000;
+    margin: 0; padding: 0;
+    background: var(--campus-header-bg);
+    border-bottom: 1px solid var(--campus-header-border);
+    box-shadow: none;
+    font-family: var(--campus-font); font-size: 1rem; line-height: 1.5;
+  }
+  .campus-header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 64px; padding: 0 16px;
+  }
+  .campus-header .campus-logo { display: flex; align-items: center; flex-shrink: 0; margin-right: 32px; }
+  .campus-header .campus-logo img { display: block; height: 28px; width: auto; max-width: none; }
+  .campus-header .campus-course {
+    display: none; min-width: 0; max-width: 320px; margin-right: 24px; padding-left: 24px;
+    border-left: 1px solid var(--campus-header-border); line-height: 1.25;
+  }
+  .campus-header .campus-course span {
+    display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--campus-header-text);
+  }
+  .campus-header .campus-course .campus-course-org { font-size: .8125rem; color: var(--campus-header-link); }
+  .campus-header .campus-course .campus-course-name { font-weight: 600; }
+  .campus-header .campus-nav { display: none; }
+  .campus-header a.campus-nav-link {
+    color: var(--campus-header-link); font-weight: 500; text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+  .campus-header a.campus-nav-link:hover,
+  .campus-header a.campus-nav-link:focus {
+    color: var(--campus-header-text); border-bottom-color: var(--campus-header-active); text-decoration: none;
+  }
+  .campus-header .campus-account { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .campus-header a.campus-account-link { color: var(--campus-header-link); font-weight: 500; text-decoration: none; }
+  .campus-header a.campus-account-link:hover { color: var(--campus-header-text); }
+  .campus-header a.campus-btn-primary {
+    display: inline-flex; align-items: center; padding: 8px 16px;
+    border-radius: .375rem; background: var(--campus-primary); color: #fff;
+    font-weight: 500; text-decoration: none;
+  }
+  .campus-header a.campus-btn-primary:hover { background: var(--campus-primary-hover); color: #fff; }
+  .campus-header details > summary { list-style: none; cursor: pointer; }
+  .campus-header details > summary::-webkit-details-marker { display: none; }
+  .campus-header .campus-user-menu { position: relative; }
+  .campus-header .campus-user-menu > summary {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+    border: 1px solid var(--campus-header-control-border); border-radius: .375rem;
+    color: var(--campus-header-text); font-weight: 500;
+  }
+  .campus-header .campus-user-menu > summary:hover,
+  .campus-header .campus-user-menu[open] > summary { background: var(--campus-header-hover); }
+  .campus-header .campus-user-menu-content {
+    display: flex; flex-direction: column; margin-top: 8px;
+  }
+  .campus-header .campus-user-menu-content a {
+    padding: 10px 0; color: var(--campus-header-link); font-weight: 500; text-decoration: none;
+  }
+  .campus-header .campus-mobile-menu > summary {
+    padding: 8px 14px; border: 1px solid var(--campus-header-control-border); border-radius: 999px;
+    color: var(--campus-header-text); font-weight: 500;
+  }
+  .campus-header .campus-mobile-menu > nav {
+    position: absolute; top: 64px; left: 0; right: 0;
+    display: flex; flex-direction: column; gap: 16px; padding: 20px 16px 24px;
+    background: var(--campus-header-bg); border-bottom: 1px solid var(--campus-header-border);
+    box-shadow: 0 14px 26px rgba(0, 0, 0, .08);
+  }
+  @media (min-width: 900px) {
+    .campus-header-inner { justify-content: flex-start; padding: 0 24px; }
+    .campus-header .campus-mobile-menu { display: none; }
+    .campus-header .campus-course { display: block; }
+    .campus-header .campus-nav { display: flex; flex: 1; align-items: center; gap: 24px; }
+    .campus-header .campus-nav > a.campus-nav-link { padding: 20px 0 18px; line-height: 24px; }
+    .campus-header .campus-nav .campus-account { margin-left: auto; }
+    .campus-header .campus-user-menu-content {
+      position: absolute; top: calc(100% + 8px); right: 0; width: 224px; margin: 0; padding: 6px 0;
+      background: #fff; border-radius: 6px;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .05), 0 10px 15px -3px rgba(0, 0, 0, .15);
+    }
+    .campus-header .campus-user-menu-content a { padding: 10px 16px; color: #252a31; font-weight: 400; }
+    .campus-header .campus-user-menu-content a:hover { background: var(--campus-header-hover); }
+  }
+</style>
+
+<header class="campus-header" aria-label="${_('Main')}">
+  % if settings.FEATURES.get('ENABLE_COOKIE_POLICY_BANNER', use_cookie_banner):
+    ${static.renderReact(
+        component="CookiePolicyBanner",
+        id="frontend-component-cookie-policy-banner",
+        props={}
+    )}
+  % endif
+  <div class="campus-header-inner">
+    <a class="campus-logo" href="${campus_site}/">
+      <img src="${campus_site}/logo.svg" alt="Campus">
+    </a>
+
+    % if course_title:
+      <div class="campus-course">
+        <span class="campus-course-org">${course.display_org_with_default} ${course.display_number_with_default}</span>
+        <span class="campus-course-name">${course_title}</span>
+      </div>
+    % endif
+
+    <nav class="campus-nav" aria-label="Principal">
+      ${campus_nav_links(campus_links)}
+      <div class="campus-account">${campus_account(allows_login, profile_url, account_url, logout_url)}</div>
+    </nav>
+
+    <details class="campus-mobile-menu">
+      <summary>Menú</summary>
+      <nav aria-label="Principal">
+        ${campus_nav_links(campus_links)}
+        <div class="campus-account">${campus_account(allows_login, profile_url, account_url, logout_url)}</div>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<script>
+  // Closes the user menu on a click outside it or on Escape, like the public site's.
+  document.addEventListener('click', function (event) {
+    document.querySelectorAll('.campus-header details[open]').forEach(function (menu) {
+      if (!menu.contains(event.target)) { menu.removeAttribute('open'); }
+    });
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      document.querySelectorAll('.campus-header details[open]').forEach(function (menu) { menu.removeAttribute('open'); });
+    }
+  });
+</script>
+
+% if settings.FEATURES.get('ENABLE_COOKIE_CONSENT', False):
+  <%include file="../widgets/cookie-consent.html" />
+% endif
+
+% if header_language_selector_is_enabled():
+    <% languages = released_languages() %>
+    % if len(languages) > 1:
+        <form action="/i18n/setlang/" method="post" class="settings-language-form" id="language-settings-form">
+            <input type="hidden" id="csrf_token" name="csrfmiddlewaretoken" value="${csrf_token}">
+            % if user.is_authenticated:
+                <input title="preference api" type="hidden" class="url-endpoint" value="${reverse('preferences_api', kwargs={'username': user.username})}" data-user-is-authenticated="true">
+            % else:
+                <input title="session update url" type="hidden" class="url-endpoint" value="${reverse('update_language')}" data-user-is-authenticated="false">
+            % endif
+            <label><span class="sr">${_("Choose Language")}</span>
+            <select class="input select language-selector" id="settings-language-value" name="language">
+                % for language in languages:
+                    % if language[0] == LANGUAGE_CODE:
+                        <option value="${language[0]}" selected="selected">${language[1]}</option>
+                    % else:
+                        <option value="${language[0]}" >${language[1]}</option>
+                    % endif
+                % endfor
+            </select>
+            </label>
+        </form>
+    % endif
+% endif

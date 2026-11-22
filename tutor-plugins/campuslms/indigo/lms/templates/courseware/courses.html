@@ -1,0 +1,256 @@
+## Course catalog of the LMS (/courses), in Spanish and with the Campus look
+## (the public site's /cursos). Replaces tutor-indigo's (tutor-plugins/campuslms.py),
+## whose texts were hardcoded in English ("Unlock Your Potential...", "Filters",
+## "Search") and whose filters came with English names.
+<%page expression_filter="h"/>
+<%!
+  import copy
+  import json
+  from django.utils.translation import gettext as _
+  from openedx.core.djangolib.js_utils import js_escaped_string, dump_js_escaped_json
+
+  def campus_meanings(meanings):
+      """Filter names (COURSE_DISCOVERY_MEANINGS) come in English from the LMS settings."""
+      meanings = copy.deepcopy(meanings or {})
+      for key, name in (("org", "Organización"), ("modes", "Tipo de inscripción"), ("language", "Idioma")):
+          if key in meanings:
+              meanings[key]["name"] = name
+      if "modes" in meanings:
+          meanings["modes"].setdefault("terms", {}).update({
+              "honor": "Honor", "verified": "Verificado", "audit": "Libre",
+              "professional": "Profesional", "no-id-professional": "Profesional",
+          })
+      if "language" in meanings:
+          meanings["language"].setdefault("terms", {}).update({
+              "es": "Español", "es-419": "Español", "en": "Inglés", "pt": "Portugués", "fr": "Francés",
+          })
+      return meanings
+%>
+<%inherit file="../main.html" />
+<%
+  course_discovery_enabled = settings.FEATURES.get('ENABLE_COURSE_DISCOVERY')
+
+%>
+
+<%namespace name='static' file='../static_content.html'/>
+<%block name="js_extra">
+  <script type="text/javascript" src="${static.url('common/js/vendor/bootstrap.bundle.js')}"></script>
+</%block>
+% if course_discovery_enabled:
+<%block name="header_extras">
+  <script>
+    // The official es-419 catalog has "Ver %scursos " (no space) for "Viewing %s courses".
+    (function () {
+      if (window.django && django.catalog) {
+        django.catalog['Viewing %s course'] = ['%s curso', '%s cursos', '%s cursos'];
+        django.catalog['We couldn\'t find any results for "%s".'] = 'No encontramos cursos para "%s".';
+      }
+    }());
+  </script>
+  % for template_name in ["course_card", "filter_bar", "filter", "facet", "facet_option"]:
+  <script type="text/template" id="${template_name}-tpl">
+      <%static:include path="discovery/${template_name}.underscore" />
+  </script>
+  % endfor
+  <%static:require_module module_name="js/discovery/discovery_factory" class_name="DiscoveryFactory">
+    DiscoveryFactory(
+      ${campus_meanings(course_discovery_meanings) | n, dump_js_escaped_json},
+      getParameterByName('search_query'),
+      "${user_language | n, js_escaped_string}",
+      "${user_timezone | n, js_escaped_string}",
+      ${set_default_filter | n, dump_js_escaped_json}
+    );
+  </%static:require_module>
+</%block>
+% endif
+
+<%block name="pagetitle">Cursos</%block>
+
+<style>
+  /* Campus look (the public site's /cursos page). `#main` and the !important
+     beat tutor-indigo's catalog styles (lms/static/sass/courseware/_discover.scss). */
+  body { background: #f8f7f6 !important; }
+  .window-wrap #content.content-wrapper { margin-top: 0 !important; background: transparent; }
+  #main .find-courses.campus-courses {
+    max-width: 1120px; margin: 0 auto; padding: 56px 16px 0 !important; color: #252a31; background: transparent;
+  }
+  #main .campus-courses .courses-container { padding: 0; max-width: none; }
+  #main .campus-courses .course-heading-area { margin: 0 0 32px; padding: 0; text-align: left; }
+  #main .campus-courses .course-heading-area h1 {
+    margin: 0 0 8px; padding: 0; font-size: 3rem; font-weight: 700; line-height: 1.1; letter-spacing: -.02em;
+    color: #252a31; text-align: left; text-transform: none;
+  }
+  #main .campus-courses .course-heading-area p { margin: 0; font-size: 1.125rem; line-height: 1.6; color: #555; }
+
+  /* Search and filters. */
+  #main .campus-courses .saerch-bar-discover {
+    display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px;
+    margin: 0 0 24px; padding: 0 0 24px; border-bottom: 1px solid #e8e9ea;
+  }
+  #main .campus-courses .saerch-bar-discover::after { display: none; }
+  #main .campus-courses .discover-search { flex: 1 1 320px; order: 1; width: auto; }
+  #main .campus-courses .filter-block { flex: 0 0 auto; order: 2; margin-top: 29px; }
+  #main .campus-courses .campus-search-label {
+    display: block; margin: 0 0 8px; font-size: .875rem; font-style: normal; font-weight: 600; color: #252a31;
+  }
+  #main .campus-courses .wrapper-search-input { display: flex; gap: 12px; margin: 0; }
+  #main .campus-courses .wrapper-search-input .input-holder {
+    display: flex; align-items: center; flex: 1; padding: 0 12px;
+    background: #fff; border: 1px solid #e8e9ea; border-radius: .375rem;
+  }
+  #main .campus-courses .wrapper-search-input .input-holder:focus-within {
+    border-color: #7c6a52; box-shadow: 0 0 0 3px rgb(124 106 82 / 15%);
+  }
+  #main .campus-courses .wrapper-search-input .input-holder svg { position: static; flex-shrink: 0; }
+  #main .campus-courses .wrapper-search-input .input-holder svg path { fill: #8b909a; }
+  #main .campus-courses .wrapper-search-input input.discovery-input {
+    flex: 1; height: 48px; margin: 0; padding: 0 0 0 8px; border: 0; background: transparent; box-shadow: none;
+    font-size: 1rem; color: #252a31; outline: none;
+  }
+  #main .campus-courses .wrapper-search-input input.discovery-input::placeholder { color: #8b909a; }
+  #main .campus-courses .wrapper-search-input .discovery-submit {
+    height: 50px; min-width: 0; margin: 0; padding: 0 22px; border: 0; border-radius: .375rem;
+    background: #7c6a52; color: #fff; font-size: 1rem; font-weight: 500; line-height: 1;
+    text-transform: none; letter-spacing: 0; box-shadow: none; text-shadow: none; opacity: 1;
+  }
+  #main .campus-courses .wrapper-search-input .discovery-submit:hover { background: #6c5c48; }
+  #main .campus-courses .search-status-label { margin: 0; padding: 12px 0 0; font-size: .9375rem; color: #555; }
+  #main .campus-courses .filter-block > a.dropdown-toggle {
+    display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px;
+    background: #fff; border: 1px solid #e8e9ea; border-radius: 999px;
+    color: #252a31; font-size: 1rem; font-weight: 500; text-decoration: none;
+  }
+  #main .campus-courses .filter-block > a.dropdown-toggle::after { display: none; }
+  #main .campus-courses .filter-block > a.dropdown-toggle span { display: inline !important; }
+  #main .campus-courses .filter-block .dropdown-menu,
+  #main .campus-courses .filter-block .search-facets,
+  #main .campus-courses .filter-block .search-facets-lists { background: #fff !important; }
+  #main .campus-courses .filter-block > a.dropdown-toggle:hover { background: #f5f3f1; }
+  #main .campus-courses .filter-block .dropdown-menu {
+    left: auto !important; right: 0; min-width: 280px; padding: 16px; border: 0; border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .05), 0 10px 15px -3px rgba(0, 0, 0, .15);
+  }
+  #main .campus-courses .header-search-facets {
+    margin: 0 0 8px; font-size: .875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #252a31;
+  }
+  #main .campus-courses #filter-bar { flex-basis: 100%; order: 3; }
+  #main .campus-courses .discovery-button { font-family: inherit; }
+
+  /* Course cards. */
+  #main .campus-courses .course-holder { width: 100% !important; float: none !important; }
+  #main .campus-courses .courses .courses-listing {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 24px;
+    margin: 0; padding: 0; list-style: none; letter-spacing: normal;
+  }
+  #main .campus-courses .courses .courses-listing li {
+    display: block !important; width: auto !important; max-width: none !important; max-height: none !important;
+    margin: 0 !important; padding: 0 !important; float: none !important;
+  }
+  #main .campus-courses .courses .courses-listing li .course {
+    display: flex; flex-direction: column; height: 100%; margin: 0; overflow: hidden;
+    background: #fff; border: 1px solid #e8e9ea; border-radius: 12px;
+    box-shadow: 0 1px 2px rgb(37 42 49 / 6%), 0 4px 16px rgb(37 42 49 / 6%);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  #main .campus-courses .courses .courses-listing li .course:hover {
+    transform: translateY(-2px); box-shadow: 0 2px 4px rgb(37 42 49 / 8%), 0 12px 28px rgb(37 42 49 / 12%);
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-image { margin: 0; padding: 0; }
+  #main .campus-courses .courses .courses-listing li .course .course-image .cover-image {
+    position: relative; height: auto !important; aspect-ratio: 16 / 9; margin: 0; padding: 0; overflow: hidden;
+    background: #f5f3f1;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-image .cover-image img {
+    position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; border-radius: 0;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info {
+    display: flex; flex: 1; flex-direction: column; height: auto; margin: 0; padding: 20px 22px 22px;
+    background: none; border: 0; font-family: inherit;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info h2.course-name {
+    display: flex; flex-direction: column; gap: 4px; height: auto; margin: 0; padding: 0; font-family: inherit;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info .course-organization {
+    order: -1; margin: 0; font-size: .875rem; font-weight: 400; line-height: 1.4; color: #555;
+    text-transform: none; letter-spacing: 0;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info .course-title {
+    margin: 0; font-size: 1.125rem; font-weight: 700; line-height: 1.35; color: #252a31; text-transform: none;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info .course-date {
+    display: flex; align-items: center; gap: 8px; margin: auto 0 0; padding: 16px 0 0;
+    border: 0; border-top: 1px solid #e8e9ea; font-size: .875rem; line-height: 1.4; color: #555; background: none;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info .course-date svg { margin: 0; }
+  #main .campus-courses .courses .courses-listing li .course .course-info .learn-more {
+    display: inline-flex; align-self: flex-start; align-items: center; width: auto;
+    margin: 16px 0 0; padding: 8px 16px; border: 0; border-radius: .375rem;
+    background: #7c6a52; color: #fff; font-size: .9375rem; font-weight: 500; line-height: 1.4;
+    text-decoration: none; opacity: 1;
+  }
+  #main .campus-courses .courses .courses-listing li .course .course-info .learn-more:hover { background: #6c5c48; }
+  #main .campus-courses .courses .courses-listing li .course .course-info h2.course-name { margin-bottom: 16px; }
+
+  @media (max-width: 640px) {
+    #main .find-courses.campus-courses { padding-top: 32px !important; }
+    #main .campus-courses .course-heading-area h1 { font-size: 2.25rem; }
+    #main .campus-courses .filter-block { margin-top: 0; }
+  }
+</style>
+
+<main id="main" aria-label="Contenido" tabindex="-1">
+    <section class="find-courses campus-courses">
+      <section class="courses-container">
+        <div class="course-heading-area">
+          <h1>Cursos</h1>
+          <p>Encuentra el curso que buscas y comienza a aprender hoy.</p>
+        </div>
+        % if course_discovery_enabled:
+          <div class="saerch-bar-discover">
+            <div class="discover-search">
+              <div id="discovery-form" role="search" aria-label="Buscar cursos" class="wrapper-search-context">
+                <label for="discovery-input" class="campus-search-label">Buscar cursos</label>
+                <form class="wrapper-search-input">
+                  <div class="input-holder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="#8b909a"/>
+                    </svg>
+                    <input id="discovery-input" class="discovery-input" placeholder="Nombre, tema u organización" type="text"/>
+                  </div>
+                  <button type="submit" class="button postfix discovery-submit">Buscar</button>
+                </form>
+                <div id="discovery-message" class="search-status-label"></div>
+              </div>
+            </div>
+            <div class="dropdown filter-block">
+              <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M2 3C2 2.44772 2.44772 2 3 2H13C13.5523 2 14 2.44772 14 3V4.25245C14 4.51767 13.8946 4.77202 13.7071 4.95956L9.62623 9.04044C9.43869 9.22798 9.33333 9.48233 9.33333 9.74755V11.3333L6.66667 14V9.74755C6.66667 9.48233 6.56131 9.22798 6.37377 9.04044L2.29289 4.95956C2.10536 4.77202 2 4.51767 2 4.25245V3Z" stroke="#606060" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Filtros</span>
+              </a>
+              <div class="dropdown-menu dropdown-menu-right search-facets-lists" aria-labelledby="dropdownMenuLink">
+                  <aside aria-label="Filtrar cursos" class="search-facets phone-menu">
+                    <h2 class="header-search-facets">Filtrar cursos</h2>
+                    <section class="search-facets-lists">
+                    </section>
+                  </aside>
+              </div>
+            </div>
+            <div id="filter-bar" class="filters hide-phone is-collapsed">
+            </div>
+          </div>
+        % endif
+
+        <div class="course-holder courses${'' if course_discovery_enabled else ' no-course-discovery'}" role="region" aria-label="Lista de cursos">
+          <ul class="courses-listing courses-list">
+            %for course in courses:
+            <li class="courses-listing-item">
+              <%include file="../course.html" args="course=course" />
+            </li>
+            %endfor
+          </ul>
+        </div>
+      </section>
+    </section>
+</main>
